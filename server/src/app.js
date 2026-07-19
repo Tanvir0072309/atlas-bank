@@ -4,6 +4,8 @@ import helmet from "helmet";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
 
+import authRoutes from "./routes/auth.routes.js";
+
 const app = express();
 
 // Security
@@ -34,5 +36,8 @@ app.get("/", (req, res) => {
         message: "🚀 Atlas Bank API is Running...",
     });
 });
+
+// API Routes
+app.use("/api/v1/auth", authRoutes);
 
 export default app;

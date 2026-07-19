@@ -1,0 +1,244 @@
+❌ Joi/Zod validation
+❌ Refresh Token
+❌ Email verification
+❌ Forgot Password
+❌ Reset Password
+❌ Access & Refresh Token separation
+❌ Secure cookie authentication
+❌ Role middleware
+❌ Centralized error handling
+❌ Logger
+❌ Response formatter
+❌ Custom Error classes
+❌ Repository interfaces
+❌ DTOs
+❌ Swagger documentation
+❌ Unit tests
+
+Security
+Login Attempts
+
+Account Lock
+
+Rate Limiter
+
+Helmet
+
+CORS
+
+Refresh Token Rotation
+
+Password Hashing
+
+JWT
+
+CSRF Protection (if cookies)
+
+Auth Service ⭐
+
+registerUser()
+
+loginUser()
+
+logoutUser()
+
+logoutAllDevices()
+
+refreshAccessToken()
+
+verifyEmail()
+
+sendVerificationEmail()
+
+forgotPassword()
+
+resetPassword()
+
+changePassword()
+
+changeEmail()
+
+changePhone()
+
+verifyOTP()
+
+resendOTP()
+
+
+/////////////////////////////////////////////////
+Controller
+
+register()
+
+login()
+
+logout()
+
+logoutAll()
+
+refreshToken()
+
+verifyEmail()
+
+forgotPassword()
+
+resetPassword()
+
+changePassword()
+
+changeEmail()
+
+changePhone()
+
+verifyOTP()
+
+resendOTP()
+
+
+//////////////////////////////////////////
+Routes
+POST /register
+
+POST /login
+
+POST /logout
+
+POST /logout-all
+
+POST /refresh-token
+
+POST /forgot-password
+
+POST /reset-password
+
+POST /verify-email
+
+POST /change-password
+
+POST /change-email
+
+POST /change-phone
+
+POST /verify-otp
+
+POST /resend-otp
+
+Validators
+validateRegister()
+
+validateLogin()
+
+validateForgotPassword()
+
+validateResetPassword()
+
+validateChangePassword()
+
+validateChangeEmail()
+
+validateOTP()
+
+7️⃣ Middleware
+
+Authentication
+
+verifyAccessToken()
+
+Authorization
+
+authorizeRoles()
+
+Rate Limit
+
+authRateLimiter()
+
+8️⃣ Helper Files
+
+bcrypt.helper.js
+hashPassword()
+comparePassword()
+
+jwt.helper.js
+generateAccessToken()
+
+generateRefreshToken()
+
+verifyAccessToken()
+
+verifyRefreshToken()
+
+password.helper.js
+validatePasswordStrength()
+isPasswordExpired()
+
+token.helper.js
+generateRandomToken()
+generateSecureToken()
+
+
+otp.helper.js
+generateOTP()
+verifyOTP()
+getOTPExpiry()
+
+
+
+
+
+
+
+
+
+
+
+
+
+Atlas Bank Tech Stack
+Backend
+✅ Node.js
+✅ Express.js
+Database
+✅ MongoDB Community Edition
+✅ Mongoose
+Authentication
+✅ bcrypt
+✅ jsonwebtoken (JWT)
+Validation
+✅ Zod (meri recommendation) ya Express Validator
+
+Main Zod recommend karunga. Ye modern, TypeScript-friendly aur industry me bahut popular ho raha hai.
+
+Security
+✅ Helmet
+✅ CORS
+✅ express-rate-limit
+✅ express-mongo-sanitize
+✅ hpp (HTTP Parameter Pollution protection)
+✅ cookie-parser
+✅ compression
+Environment
+✅ dotenv
+Logging
+✅ Morgan (development)
+✅ Winston + Daily Rotate File (production logs)
+Email
+✅ Nodemailer
+Gmail SMTP (development)
+Baad me apna SMTP ya free email provider use kar sakte hain.
+File Upload
+✅ Multer
+Image Processing
+✅ Sharp
+Password Reset
+✅ crypto (Node.js built-in)
+Scheduling
+✅ node-cron
+Testing
+✅ Postman
+Baad me Jest + Supertest
+Documentation
+✅ Swagger (OpenAPI)
+Deployment
+✅ Docker
+✅ Docker Compose
+Baad me Nginx

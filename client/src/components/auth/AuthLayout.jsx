@@ -1,48 +1,79 @@
-import { Link } from "react-router-dom";
+import React from "react";
+import { useNavigate, Link } from "react-router-dom";
 import logo from "../../assets/logo.png";
-import { BANK_NAME, ROUTES } from "../../utils/constants";
 
-export default function AuthLayout({ children, eyebrow, title, subtitle }) {
+export default function AuthLayout({ eyebrow, title, subtitle, children }) {
+  const navigate = useNavigate();
+
   return (
-    <div className="min-h-screen bg-[#FAF7F8] flex flex-col justify-between font-sans text-slate-800 antialiased selection:bg-[#800A38] selection:text-white">
-      {/* Header */}
-      <header className="border-b border-rose-100 bg-white/95 px-6 py-4 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <Link to={ROUTES.HOME || "/"} className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-[#800A38] to-[#C4185C] p-1.5 shadow-md shadow-[#800A38]/20">
-              <img src={logo} alt={BANK_NAME} className="h-full w-full object-contain brightness-0 invert" />
-            </div>
-            <span className="font-extrabold text-xl tracking-tight text-[#800A38]">
-              {BANK_NAME.toUpperCase()}
-            </span>
-          </Link>
-          <Link
-            to={ROUTES.HOME || "/"}
-            className="text-xs font-bold text-[#800A38] hover:text-[#A30E4A] transition-colors"
+    <div className="min-h-screen w-full bg-slate-50 flex flex-col items-center justify-between p-3 sm:p-5 lg:p-6 font-sans">
+
+      {/* Header with Local Asset Logo & Back Button */}
+      <header className="w-full max-w-5xl flex items-center justify-between py-2 px-1 mb-2">
+
+        {/* Back Button */}
+        <button
+          onClick={() => navigate(-1)}
+          className="group flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-[#800A38] bg-white border border-slate-200 hover:border-rose-200 px-3.5 py-2 rounded-xl shadow-xs hover:shadow transition-all cursor-pointer"
+          title="Go back"
+        >
+          <svg
+            className="w-4 h-4 transition-transform group-hover:-translate-x-1"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           >
-            ← Back to Home
-          </Link>
-        </div>
+            <path d="M19 12H5" />
+            <path d="M12 19l-7-7 7-7" />
+          </svg>
+          <span className="hidden sm:inline">Back</span>
+        </button>
+
+        {/* Brand Header with Local Asset Logo */}
+        <Link to="/" className="flex items-center gap-3 group">
+          <img
+            src={logo}
+            alt="Atlas Bank Logo"
+            className="w-9 h-9 sm:w-10 sm:h-10 object-contain rounded-xl shadow-xs group-hover:scale-105 transition-transform"
+          />
+          <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-900">
+            Atlas <span className="text-[#800A38]">Bank</span>
+          </span>
+        </Link>
       </header>
 
-      {/* Main Content Area */}
-      <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-12">
-        <div className="rounded-3xl border border-rose-100 bg-white p-8 shadow-xl shadow-rose-900/5">
+      {/* Main Container Card */}
+      <div className="w-full max-w-5xl bg-white rounded-3xl border border-slate-200/80 shadow-xl shadow-slate-100/50 p-5 sm:p-7 lg:p-8 my-auto">
+
+        {/* Title Section with reduced bottom margin */}
+        <div className="mb-2 sm:mb-3 text-center sm:text-left">
           {eyebrow && (
-            <span className="inline-block rounded-full bg-rose-50 px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-[#800A38] border border-rose-200 mb-3">
+            <span className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-widest text-[#800A38] bg-rose-50 px-3 py-0.5 rounded-full border border-rose-100 inline-block">
               {eyebrow}
             </span>
           )}
-          {title && <h1 className="text-2xl font-extrabold text-slate-900">{title}</h1>}
-          {subtitle && <p className="mt-2 text-xs text-slate-600 leading-relaxed">{subtitle}</p>}
-
-          <div className="mt-6">{children}</div>
+          {title && (
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 mt-1.5 tracking-tight">
+              {title}
+            </h1>
+          )}
+          {subtitle && (
+            <p className="text-xs sm:text-sm font-medium text-slate-500 mt-0.5 max-w-md mx-auto sm:mx-0">
+              {subtitle}
+            </p>
+          )}
         </div>
-      </main>
+
+        {/* Dynamic Children Content */}
+        <div>{children}</div>
+      </div>
 
       {/* Footer */}
-      <footer className="border-t border-rose-100 bg-white py-6 text-center text-xs text-slate-500">
-        <p>© {new Date().getFullYear()} {BANK_NAME}. All rights reserved.</p>
+      <footer className="py-2 text-[11px] text-slate-400 font-medium text-center">
+        © Atlas Bank. All Rights Reserved.
       </footer>
     </div>
   );

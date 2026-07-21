@@ -1,0 +1,46 @@
+import { Routes, Route, Navigate } from "react-router-dom";
+import PublicRoute from "./PublicRoute.jsx";
+import ProtectedRoute from "./ProtectedRoute.jsx";
+import AuthRouteLayout from "../layouts/AuthLayout.jsx";
+import MainLayout from "../layouts/MainLayout.jsx";
+
+import Welcome from "../pages/Welcome.jsx";
+import Register from "../pages/Register.jsx";
+import Login from "../pages/Login.jsx";
+import VerifyEmail from "../pages/VerifyEmail.jsx";
+import ForgotPassword from "../pages/ForgotPassword.jsx";
+import ResetPassword from "../pages/ResetPassword.jsx";
+import Dashboard from "../pages/Dashboard.jsx";
+import NotFound from "../pages/NotFound.jsx";
+
+import { ROUTES } from "../utils/constants";
+
+export default function AppRoutes() {
+  return (
+    <Routes>
+      {/* Public-only routes (redirect away if already logged in) */}
+      <Route element={<PublicRoute />}>
+        {/* Landing page — no forms here, just Log in / Open an account */}
+        <Route path={ROUTES.HOME} element={<Welcome />} />
+
+        <Route element={<AuthRouteLayout />}>
+          <Route path={ROUTES.REGISTER} element={<Register />} />
+          <Route path={ROUTES.LOGIN} element={<Login />} />
+          <Route path={ROUTES.VERIFY_EMAIL} element={<VerifyEmail />} />
+          <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPassword />} />
+          <Route path={ROUTES.RESET_PASSWORD} element={<ResetPassword />} />
+        </Route>
+      </Route>
+
+      {/* Protected routes (require a logged-in session) */}
+      <Route element={<ProtectedRoute />}>
+        <Route element={<MainLayout />}>
+          <Route path={ROUTES.DASHBOARD} element={<Dashboard />} />
+        </Route>
+      </Route>
+
+      <Route path={ROUTES.NOT_FOUND} element={<NotFound />} />
+      <Route path="*" element={<Navigate to={ROUTES.NOT_FOUND} replace />} />
+    </Routes>
+  );
+}

@@ -60,6 +60,18 @@ const userSchema = new mongoose.Schema(
             default: false,
         },
 
+        // Email Verification Token
+        emailVerificationToken: {
+            type: String,
+            default: null,
+        },
+
+        // Verification Token Expiry
+        emailVerificationExpiresAt: {
+            type: Date,
+            default: null,
+        },
+
         // -----------------------
         // Account Status
         // -----------------------
@@ -101,12 +113,15 @@ const userSchema = new mongoose.Schema(
         },
 
         // -----------------------
-        // Refresh Token
+        // Refresh Tokens
         // -----------------------
 
         refreshTokens: [
             {
-                token: String,
+                token: {
+                    type: String,
+                    required: true,
+                },
                 createdAt: {
                     type: Date,
                     default: Date.now,

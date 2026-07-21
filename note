@@ -242,3 +242,57 @@ Deployment
 ✅ Docker
 ✅ Docker Compose
 Baad me Nginx
+
+
+
+src
+│
+├── api
+│   └── axios.js
+│
+├── assets
+│
+├── components
+│   ├── auth
+│   │   ├── AuthLayout.jsx
+│   │   ├── LoginForm.jsx
+│   │   ├── PasswordInput.jsx
+│   │   └── RegisterForm.jsx
+│   │
+│   └── common
+│       ├── Button.jsx
+│       ├── Input.jsx
+│       ├── Loader.jsx
+│       ├── PageLoader.jsx
+│       └── Spinner.jsx
+│
+├── context
+│   └── AuthContext.jsx
+│
+├── hooks
+│   └── useAuth.js
+│
+├── layouts
+│   ├── AuthLayout.jsx
+│   └── MainLayout.jsx
+│
+├── pages
+│   ├── Register.jsx
+│   ├── Login.jsx
+│   ├── VerifyEmail.jsx
+│   ├── ForgotPassword.jsx
+│   ├── ResetPassword.jsx
+│   └── NotFound.jsx
+│
+├── routes
+│   ├── AppRoutes.jsx
+│   ├── ProtectedRoute.jsx
+│   └── PublicRoute.jsx
+│
+├── services
+│   └── auth.service.js
+│
+└── utils
+    ├── constants.js
+    ├── helpers.js
+    └── validators.js

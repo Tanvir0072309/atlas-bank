@@ -22,17 +22,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
-# Dependencies
-node_modules/
-
-# Environment
-.env
-
-# Logs
-logs
-*.log
-
-# OS files
-.DS_Store
-Thumbs.db

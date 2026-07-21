@@ -20,6 +20,33 @@ export const findUserById = async (userId) => {
     return await User.findById(userId);
 };
 
+/* ---------- EMAIL VERIFICATION (VERIFIED & FIXED) ---------- */
+
+/**
+ * Token se User find karne ke liye query.
+ * emailVerificationToken aur emailVerificationExpiresAt fields match karega.
+ */
+export const findUserByVerificationToken = async (token) => {
+    return await User.findOne({ emailVerificationToken: token });
+};
+
+/**
+ * User ko verify mark karega aur token + expiry date DB se remove/clean karega.
+ */
+export const markEmailAsVerified = async (userId) => {
+    return await User.findByIdAndUpdate(
+        userId,
+        {
+            isEmailVerified: true,
+            $unset: {
+                emailVerificationToken: 1,
+                emailVerificationExpiresAt: 1,
+            },
+        },
+        { new: true }
+    ).select("-password");
+};
+
 /* ---------- EXISTS ---------- */
 
 export const emailExists = async (email) => {

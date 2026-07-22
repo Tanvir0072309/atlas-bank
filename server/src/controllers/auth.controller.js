@@ -1,6 +1,9 @@
 import * as authService from "../services/auth.service.js";
 import { JWT_CONFIG } from "../config/jwt.config.js";
 
+// ==========================
+// REGISTER
+// ==========================
 export const register = async (req, res) => {
     try {
         const user = await authService.registerUser(req.body);
@@ -18,6 +21,9 @@ export const register = async (req, res) => {
     }
 };
 
+// ==========================
+// STEP 1: LOGIN (Credentials Verification & Send OTP)
+// ==========================
 export const login = async (req, res) => {
     try {
         const result = await authService.login(
@@ -25,28 +31,30 @@ export const login = async (req, res) => {
             req.body.password
         );
 
-        res.cookie("refreshToken", result.refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
-            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 Days
-        });
-
-        res.json({
+        // Step 1: Return success message for OTP email trigger
+        // (Do NOT send JWT/Cookies here; Step 2 will handle tokens)
+        res.status(200).json({
             success: true,
-            message: result.message,
-            accessToken: result.accessToken,
-            user: result.user,
+            message: result.message || "Verification code sent to your email.",
+            remainingAttempts: result.remainingAttempts,
         });
 
     } catch (error) {
-        res.status(401).json({
+        const statusCode = error.statusCode || 400;
+
+        // Pass remaining attempts and lockout timer to frontend
+        res.status(statusCode).json({
             success: false,
-            message: error.message,
+            message: error.message || "Invalid credentials.",
+            remainingAttempts: error.remainingAttempts,
+            lockUntil: error.lockUntil,
         });
     }
 };
 
+// ==========================
+// VERIFY EMAIL (Account Activation Link)
+// ==========================
 export const verifyEmail = async (req, res) => {
     try {
         const { token } = req.query;
@@ -65,6 +73,9 @@ export const verifyEmail = async (req, res) => {
     }
 };
 
+// ==========================
+// STEP 2: VERIFY LOGIN (OTP Verification & Set Tokens)
+// ==========================
 export const verifyLogin = async (req, res) => {
     try {
         const { email, code } = req.body;
@@ -74,6 +85,7 @@ export const verifyLogin = async (req, res) => {
             code
         );
 
+        // Set Refresh Token HttpOnly Cookie
         res.cookie(
             "refreshToken",
             result.refreshToken,
@@ -81,27 +93,31 @@ export const verifyLogin = async (req, res) => {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === "production",
                 sameSite: "strict",
-                maxAge:
-                    JWT_CONFIG.refreshToken.expiresInMs,
+                maxAge: JWT_CONFIG.refreshToken.expiresInMs || 7 * 24 * 60 * 60 * 1000,
             }
         );
 
         return res.status(200).json({
             success: true,
-            message: result.message,
+            message: result.message || "Login successful",
             accessToken: result.accessToken,
             user: result.user,
         });
     } catch (error) {
-        return res.status(error.statusCode || 500).json({
+        const statusCode = error.statusCode || 400;
+
+        return res.status(statusCode).json({
             success: false,
-            message:
-                error.message ||
-                "Login verification failed.",
+            message: error.message || "Login verification failed.",
+            remainingAttempts: error.remainingAttempts,
+            lockUntil: error.lockUntil,
         });
     }
 };
 
+// ==========================
+// REFRESH ACCESS TOKEN
+// ==========================
 export const refreshAccessToken = async (req, res, next) => {
     try {
         const result = await authService.refreshAccessToken(

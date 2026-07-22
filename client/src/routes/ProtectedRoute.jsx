@@ -4,13 +4,21 @@ import PageLoader from "../components/common/PageLoader.jsx";
 import { ROUTES } from "../utils/constants";
 
 export default function ProtectedRoute() {
-  const { isAuthenticated, loading } = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
 
-  if (loading) return <PageLoader />;
+  if (loading) {
+    return <PageLoader />;
+  }
 
-  if (!isAuthenticated) {
-    return <Navigate to={ROUTES.LOGIN} replace state={{ from: location }} />;
+  if (!user) {
+    return (
+      <Navigate
+        to={ROUTES.LOGIN}
+        replace
+        state={{ from: location }}
+      />
+    );
   }
 
   return <Outlet />;

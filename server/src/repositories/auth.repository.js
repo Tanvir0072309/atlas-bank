@@ -96,7 +96,6 @@ export const lockAccount = async (userId, lockUntil) => {
         userId,
         {
             lockUntil,
-            status: "locked",
         },
         { new: true }
     );

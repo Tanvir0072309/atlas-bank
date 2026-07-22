@@ -7,7 +7,14 @@ import {
     markEmailAsVerified,
     findUserByEmail,
     updateLastLogin,
+    incrementLoginAttempts,
+    lockAccount,
+    resetLoginAttempts,
 } from "../repositories/auth.repository.js";
+import {
+    MAX_LOGIN_ATTEMPTS,
+    ACCOUNT_LOCK_TIME,
+} from "../constants/auth.constants.js";
 import { comparePassword } from "../helpers/bcrypt.helper.js";
 import { hashPassword } from "../helpers/bcrypt.helper.js";
 import { validatePasswordStrength } from "../helpers/password.helper.js";
@@ -112,6 +119,14 @@ export const login = async (email, password) => {
         );
     }
 
+    // Account Lock Check
+    if (user.lockUntil && user.lockUntil > new Date()) {
+        throw new ApiError(
+            403,
+            "Your account is temporarily locked. Please try again later."
+        );
+    }
+
     // Password Check
     const isPasswordCorrect = await comparePassword(
         password,
@@ -119,8 +134,23 @@ export const login = async (email, password) => {
     );
 
     if (!isPasswordCorrect) {
+        const updatedUser = await incrementLoginAttempts(user._id);
+
+        if (updatedUser.loginAttempts >= MAX_LOGIN_ATTEMPTS) {
+            const lockUntil = new Date(Date.now() + ACCOUNT_LOCK_TIME);
+
+            await lockAccount(user._id, lockUntil);
+
+            throw new ApiError(
+                403,
+                "Your account has been locked for 30 minutes due to multiple failed login attempts."
+            );
+        }
+
         throw new ApiError(401, "Invalid email or password.");
     }
+
+    await resetLoginAttempts(user._id);
 
     // Update Last Login and get updated user
     const updatedUser = await updateLastLogin(user._id);

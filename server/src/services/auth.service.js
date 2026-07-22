@@ -20,7 +20,10 @@ import { hashPassword } from "../helpers/bcrypt.helper.js";
 import { validatePasswordStrength } from "../helpers/password.helper.js";
 import { generateRandomToken } from "../helpers/token.helper.js";
 import { sendVerificationEmail } from "./email.service.js";
-import { generateAccessToken } from "../helpers/jwt.helper.js";
+import {
+    generateAccessToken,
+    generateRefreshToken,
+} from "../helpers/jwt.helper.js";
 
 /* ---------- 1. REGISTER USER (Ensure 'export const') ---------- */
 export const registerUser = async (userData) => {
@@ -162,6 +165,12 @@ export const login = async (email, password) => {
         role: updatedUser.role,
     });
 
+    const refreshToken = generateRefreshToken({
+        id: updatedUser._id,
+        email: updatedUser.email,
+        role: updatedUser.role,
+    });
+
     // Remove Sensitive Fields
     updatedUser.password = undefined;
     updatedUser.emailVerificationToken = undefined;
@@ -169,7 +178,8 @@ export const login = async (email, password) => {
 
     return {
         message: "Login successful.",
-        token: accessToken,
+        accessToken,
+        refreshToken,
         user: updatedUser,
     };
 };

@@ -5,7 +5,10 @@ import {
     phoneExists,
     findUserByVerificationToken,
     markEmailAsVerified,
+    findUserByEmail,
+    updateLastLogin,
 } from "../repositories/auth.repository.js";
+import { comparePassword } from "../helpers/bcrypt.helper.js";
 import { hashPassword } from "../helpers/bcrypt.helper.js";
 import { validatePasswordStrength } from "../helpers/password.helper.js";
 import { generateRandomToken } from "../helpers/token.helper.js";
@@ -82,5 +85,61 @@ export const verifyEmailToken = async (token) => {
 
 /* ---------- 3. LOGIN ---------- */
 export const login = async (email, password) => {
-    // Aapka login logic yahan...
+    if (!email || !password) {
+        throw new ApiError(400, "Email and password are required.");
+    }
+
+    // Find User
+    const user = await findUserByEmail(email);
+
+    if (!user) {
+        throw new ApiError(401, "Invalid email or password.");
+    }
+
+    // Email Verification Check
+    if (!user.isEmailVerified) {
+        throw new ApiError(
+            403,
+            "Please verify your email before logging in."
+        );
+    }
+
+    // Account Status Check
+    if (user.status !== "active") {
+        throw new ApiError(
+            403,
+            "Your account is not active. Please contact support."
+        );
+    }
+
+    // Password Check
+    const isPasswordCorrect = await comparePassword(
+        password,
+        user.password
+    );
+
+    if (!isPasswordCorrect) {
+        throw new ApiError(401, "Invalid email or password.");
+    }
+
+    // Update Last Login and get updated user
+    const updatedUser = await updateLastLogin(user._id);
+
+    // Generate JWT
+    const accessToken = generateAccessToken({
+        id: updatedUser._id,
+        email: updatedUser.email,
+        role: updatedUser.role,
+    });
+
+    // Remove Sensitive Fields
+    updatedUser.password = undefined;
+    updatedUser.emailVerificationToken = undefined;
+    updatedUser.emailVerificationExpiresAt = undefined;
+
+    return {
+        message: "Login successful.",
+        token: accessToken,
+        user: updatedUser,
+    };
 };

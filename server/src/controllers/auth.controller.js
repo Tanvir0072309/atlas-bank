@@ -24,6 +24,8 @@ export const login = async (req, res) => {
             req.body.password
         );
 
+        console.log(result);
+
         res.json({
             success: true,
             ...result,
@@ -36,7 +38,6 @@ export const login = async (req, res) => {
     }
 };
 
-//  New Verify Email Controller
 export const verifyEmail = async (req, res) => {
     try {
         const { token } = req.query;

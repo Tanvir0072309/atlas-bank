@@ -22,22 +22,16 @@ export const findUserById = async (userId) => {
 
 /* ---------- EMAIL VERIFICATION (VERIFIED & FIXED) ---------- */
 
-/**
- * Token se User find karne ke liye query.
- * emailVerificationToken aur emailVerificationExpiresAt fields match karega.
- */
 export const findUserByVerificationToken = async (token) => {
     return await User.findOne({ emailVerificationToken: token });
 };
 
-/**
- * User ko verify mark karega aur token + expiry date DB se remove/clean karega.
- */
 export const markEmailAsVerified = async (userId) => {
     return await User.findByIdAndUpdate(
         userId,
         {
             isEmailVerified: true,
+            status: "active",
             $unset: {
                 emailVerificationToken: 1,
                 emailVerificationExpiresAt: 1,
@@ -59,11 +53,19 @@ export const phoneExists = async (phone) => {
 
 /* ---------- UPDATE ---------- */
 
-export const updateUser = async (userId, updateData) => {
-    return await User.findByIdAndUpdate(userId, updateData, {
-        new: true,
-        runValidators: true,
-    });
+export const updateLastLogin = async (userId) => {
+    return await User.findByIdAndUpdate(
+        userId,
+        {
+            $set: {
+                lastLogin: new Date(),
+            },
+        },
+        {
+            new: true,
+            runValidators: true,
+        }
+    ).select("-password");
 };
 
 /* ---------- LOGIN SECURITY ---------- */
@@ -94,20 +96,13 @@ export const lockAccount = async (userId, lockUntil) => {
         userId,
         {
             lockUntil,
+            status: "locked",
         },
         { new: true }
     );
 };
 
-export const updateLastLogin = async (userId) => {
-    return await User.findByIdAndUpdate(
-        userId,
-        {
-            lastLogin: new Date(),
-        },
-        { new: true }
-    );
-};
+
 
 /* ---------- REFRESH TOKEN ---------- */
 
@@ -148,3 +143,4 @@ export const removeAllRefreshTokens = async (userId) => {
         { new: true }
     );
 };
+

@@ -33,11 +33,22 @@ import {
     resetLoginAttempts,
     saveRefreshToken,
     findUserByRefreshToken,
+    saveLoginVerification,
+    findUserByEmailForLoginVerification,
+    clearLoginVerification,
 } from "../repositories/auth.repository.js";
 
-import { sendVerificationEmail } from "./email.service.js";
+import {
+    sendVerificationEmail,
+    sendLoginVerificationEmail,
+} from "./email.service.js";
 
 import ApiError from "../utils/ApiError.js";
+
+import {
+    generateVerificationCode,
+    hashVerificationCode,
+} from "../helpers/loginVerification.helper.js";
 
 /* ---------- 1. REGISTER USER (Ensure 'export const') ---------- */
 export const registerUser = async (userData) => {
@@ -154,7 +165,9 @@ export const login = async (email, password) => {
         const updatedUser = await incrementLoginAttempts(user._id);
 
         if (updatedUser.loginAttempts >= MAX_LOGIN_ATTEMPTS) {
-            const lockUntil = new Date(Date.now() + ACCOUNT_LOCK_TIME);
+            const lockUntil = new Date(
+                Date.now() + ACCOUNT_LOCK_TIME
+            );
 
             await lockAccount(user._id, lockUntil);
 
@@ -164,37 +177,43 @@ export const login = async (email, password) => {
             );
         }
 
-        throw new ApiError(401, "Invalid email or password.");
+        throw new ApiError(
+            401,
+            "Invalid email or password."
+        );
     }
 
+    // Reset Failed Attempts
     await resetLoginAttempts(user._id);
 
-    // Update Last Login and get updated user
+    // Update Last Login
     const updatedUser = await updateLastLogin(user._id);
 
-    // Generate JWT
-    const accessToken = generateAccessToken({
-        id: updatedUser._id,
-        email: updatedUser.email,
-        role: updatedUser.role,
-    });
+    // Generate Verification Code
+    const verificationCode =
+        generateVerificationCode();
 
-    const refreshToken = generateRefreshToken({
-        id: updatedUser._id,
-        email: updatedUser.email,
-        role: updatedUser.role,
-    });
+    // Hash Verification Code
+    const codeHash =
+        hashVerificationCode(verificationCode);
 
-    const tokenHash = hashRefreshToken(refreshToken);
-
+    // Expiry (5 Minutes)
     const expiresAt = new Date(
-        Date.now() + 7 * 24 * 60 * 60 * 1000
+        Date.now() + 5 * 60 * 1000
     );
 
-    await saveRefreshToken(
+    // Save Verification Code
+    await saveLoginVerification(
         updatedUser._id,
-        tokenHash,
+        codeHash,
         expiresAt
+    );
+
+    // Send Verification Email
+    await sendLoginVerificationEmail(
+        updatedUser.email,
+        updatedUser.fullName,
+        verificationCode
     );
 
     // Remove Sensitive Fields
@@ -203,10 +222,98 @@ export const login = async (email, password) => {
     updatedUser.emailVerificationExpiresAt = undefined;
 
     return {
+        message:
+            "Verification code sent to your email.",
+    };
+};
+
+export const verifyLogin = async (email, code) => {
+    if (!email || !code) {
+        throw new ApiError(
+            400,
+            "Email and verification code are required."
+        );
+    }
+
+    const user =
+        await findUserByEmailForLoginVerification(
+            email
+        );
+
+    if (!user) {
+        throw new ApiError(404, "User not found.");
+    }
+
+    if (!user.loginVerification.codeHash) {
+        throw new ApiError(
+            400,
+            "No pending login verification found."
+        );
+    }
+
+    if (
+        user.loginVerification.expiresAt < new Date()
+    ) {
+        throw new ApiError(
+            400,
+            "Verification code has expired."
+        );
+    }
+
+    const codeHash =
+        hashVerificationCode(code);
+
+    if (
+        codeHash !==
+        user.loginVerification.codeHash
+    ) {
+        throw new ApiError(
+            401,
+            "Invalid verification code."
+        );
+    }
+
+    await clearLoginVerification(user._id);
+
+    const accessToken =
+        generateAccessToken({
+            id: user._id,
+            email: user.email,
+            role: user.role,
+        });
+
+    const refreshToken =
+        generateRefreshToken({
+            id: user._id,
+            email: user.email,
+            role: user.role,
+        });
+
+    const tokenHash =
+        hashRefreshToken(refreshToken);
+
+    const expiresAt = new Date(
+        Date.now() +
+        JWT_CONFIG.refreshToken.expiresInMs
+    );
+
+    await saveRefreshToken(
+        user._id,
+        tokenHash,
+        expiresAt
+    );
+    
+    // Remove Sensitive Fields
+    user.password = undefined;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpiresAt = undefined;
+    user.loginVerification = undefined;
+
+    return {
         message: "Login successful.",
         accessToken,
         refreshToken,
-        user: updatedUser,
+        user,
     };
 };
 

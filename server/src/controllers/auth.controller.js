@@ -1,4 +1,5 @@
 import * as authService from "../services/auth.service.js";
+import { JWT_CONFIG } from "../config/jwt.config.js";
 
 export const register = async (req, res) => {
     try {
@@ -60,6 +61,43 @@ export const verifyEmail = async (req, res) => {
         return res.status(error.statusCode || 400).json({
             success: false,
             message: error.message || "Verification failed.",
+        });
+    }
+};
+
+export const verifyLogin = async (req, res) => {
+    try {
+        const { email, code } = req.body;
+
+        const result = await authService.verifyLogin(
+            email,
+            code
+        );
+
+        res.cookie(
+            "refreshToken",
+            result.refreshToken,
+            {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                sameSite: "strict",
+                maxAge:
+                    JWT_CONFIG.refreshToken.expiresInMs,
+            }
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: result.message,
+            accessToken: result.accessToken,
+            user: result.user,
+        });
+    } catch (error) {
+        return res.status(error.statusCode || 500).json({
+            success: false,
+            message:
+                error.message ||
+                "Login verification failed.",
         });
     }
 };

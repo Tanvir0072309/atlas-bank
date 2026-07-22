@@ -72,6 +72,28 @@ const userSchema = new mongoose.Schema(
             default: null,
         },
 
+        loginVerification: {
+            codeHash: {
+                type: String,
+                default: null,
+            },
+
+            expiresAt: {
+                type: Date,
+                default: null,
+            },
+
+            attempts: {
+                type: Number,
+                default: 0,
+            },
+
+            lastSentAt: {
+                type: Date,
+                default: null,
+            },
+        },
+
         // -----------------------
         // Account Status
         // -----------------------

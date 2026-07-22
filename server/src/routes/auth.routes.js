@@ -16,4 +16,9 @@ router.get("/profile", protect, (req, res) => {
 
 router.post("/refresh-token", authController.refreshAccessToken);
 
+router.post(
+    "/verify-login",
+    authController.verifyLogin
+);
+
 export default router;

@@ -153,3 +153,85 @@ export const findUserByRefreshToken = async (tokenHash) => {
         "refreshTokens.tokenHash": tokenHash,
     });
 };
+
+/**
+ * Save Login Verification Code
+ */
+export const saveLoginVerification = async (
+    userId,
+    codeHash,
+    expiresAt
+) => {
+    return await User.findByIdAndUpdate(
+        userId,
+        {
+            loginVerification: {
+                codeHash,
+                expiresAt,
+                attempts: 0,
+                lastSentAt: new Date(),
+            },
+        },
+        {
+            new: true,
+        }
+    );
+};
+
+/**
+ * Find User By Login Verification Code
+ */
+export const findUserByLoginVerification = async (
+    codeHash
+) => {
+    return await User.findOne({
+        "loginVerification.codeHash": codeHash,
+    });
+};
+
+/**
+ * Clear Login Verification
+ */
+export const clearLoginVerification = async (
+    userId
+) => {
+    return await User.findByIdAndUpdate(
+        userId,
+        {
+            loginVerification: {
+                codeHash: null,
+                expiresAt: null,
+                attempts: 0,
+                lastSentAt: null,
+            },
+        },
+        {
+            new: true,
+        }
+    );
+};
+
+/**
+ * Increment Login Verification Attempts
+ */
+export const incrementLoginVerificationAttempts =
+    async (userId) => {
+        return await User.findByIdAndUpdate(
+            userId,
+            {
+                $inc: {
+                    "loginVerification.attempts": 1,
+                },
+            },
+            {
+                new: true,
+            }
+        );
+    };
+    
+
+export const findUserByEmailForLoginVerification = async (
+    email
+) => {
+    return await User.findOne({ email });
+};    

@@ -156,3 +156,161 @@ export const sendVerificationEmail = async (email, token) => {
         html,
     });
 };
+
+/**
+ * Send Login Verification Email
+ */
+export const sendLoginVerificationEmail = async (
+    email,
+    fullName,
+    verificationCode
+) => {
+    const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Login Verification - Atlas Bank</title>
+</head>
+
+<body style="margin:0;padding:0;background:#F1F5F9;font-family:Arial,Helvetica,sans-serif;">
+
+<table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 15px;">
+<tr>
+<td align="center">
+
+<table width="560" cellpadding="0" cellspacing="0"
+style="
+background:#ffffff;
+border-radius:18px;
+overflow:hidden;
+border:1px solid #E2E8F0;
+">
+
+<tr>
+<td
+style="
+background:#800A38;
+padding:30px;
+text-align:center;
+">
+
+<h1
+style="
+margin:0;
+color:#ffffff;
+font-size:28px;
+">
+Atlas Bank
+</h1>
+
+<p
+style="
+margin-top:8px;
+color:#F8FAFC;
+">
+Secure Login Verification
+</p>
+
+</td>
+</tr>
+
+<tr>
+<td style="padding:40px;">
+
+<h2
+style="
+margin-top:0;
+color:#0F172A;
+">
+Hello ${fullName},
+</h2>
+
+<p
+style="
+font-size:15px;
+line-height:1.7;
+color:#475569;
+">
+We received a login request for your Atlas Bank account.
+Please enter the verification code below to complete your login.
+</p>
+
+<div
+style="
+margin:35px 0;
+text-align:center;
+">
+
+<div
+style="
+display:inline-block;
+padding:18px 35px;
+background:#FFF1F2;
+border:2px dashed #800A38;
+border-radius:12px;
+font-size:34px;
+font-weight:bold;
+letter-spacing:8px;
+color:#800A38;
+font-family:Consolas,monospace;
+">
+${verificationCode}
+</div>
+
+</div>
+
+<p
+style="
+font-size:14px;
+color:#64748B;
+">
+This verification code will expire in
+<strong>5 minutes</strong>.
+</p>
+
+<p
+style="
+font-size:14px;
+color:#64748B;
+">
+If you did not attempt to login,
+please ignore this email.
+No one can access your account without this verification code.
+</p>
+
+</td>
+</tr>
+
+<tr>
+<td
+style="
+background:#F8FAFC;
+padding:20px;
+text-align:center;
+font-size:12px;
+color:#94A3B8;
+">
+
+© ${new Date().getFullYear()} Atlas Bank.
+All Rights Reserved.
+
+</td>
+</tr>
+
+</table>
+
+</td>
+</tr>
+</table>
+
+</body>
+</html>
+`;
+
+    await sendEmail({
+        to: email,
+        subject: "Atlas Bank Login Verification Code",
+        html,
+    });
+};

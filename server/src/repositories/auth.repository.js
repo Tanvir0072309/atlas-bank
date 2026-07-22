@@ -101,17 +101,22 @@ export const lockAccount = async (userId, lockUntil) => {
     );
 };
 
-
-
 /* ---------- REFRESH TOKEN ---------- */
 
-export const saveRefreshToken = async (userId, refreshToken) => {
+export const saveRefreshToken = async (
+    userId,
+    tokenHash,
+    expiresAt,
+    deviceInfo = ""
+) => {
     return await User.findByIdAndUpdate(
         userId,
         {
             $push: {
                 refreshTokens: {
-                    token: refreshToken,
+                    tokenHash,
+                    expiresAt,
+                    deviceInfo,
                 },
             },
         },
@@ -119,13 +124,13 @@ export const saveRefreshToken = async (userId, refreshToken) => {
     );
 };
 
-export const removeRefreshToken = async (userId, refreshToken) => {
+export const removeRefreshToken = async (userId, tokenHash) => {
     return await User.findByIdAndUpdate(
         userId,
         {
             $pull: {
                 refreshTokens: {
-                    token: refreshToken,
+                    tokenHash,
                 },
             },
         },
@@ -143,3 +148,8 @@ export const removeAllRefreshTokens = async (userId) => {
     );
 };
 
+export const findUserByRefreshToken = async (tokenHash) => {
+    return await User.findOne({
+        "refreshTokens.tokenHash": tokenHash,
+    });
+};

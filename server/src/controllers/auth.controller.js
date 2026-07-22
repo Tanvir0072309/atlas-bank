@@ -63,3 +63,18 @@ export const verifyEmail = async (req, res) => {
         });
     }
 };
+
+export const refreshAccessToken = async (req, res, next) => {
+    try {
+        const result = await authService.refreshAccessToken(
+            req.cookies.refreshToken
+        );
+
+        return res.status(200).json({
+            success: true,
+            ...result,
+        });
+    } catch (error) {
+        next(error);
+    }
+};

@@ -118,13 +118,29 @@ const userSchema = new mongoose.Schema(
 
         refreshTokens: [
             {
-                token: {
+                tokenHash: {
                     type: String,
                     required: true,
                 },
+
                 createdAt: {
                     type: Date,
                     default: Date.now,
+                },
+
+                expiresAt: {
+                    type: Date,
+                    required: true,
+                },
+
+                deviceInfo: {
+                    type: String,
+                    default: "",
+                },
+
+                revokedAt: {
+                    type: Date,
+                    default: null,
                 },
             },
         ],

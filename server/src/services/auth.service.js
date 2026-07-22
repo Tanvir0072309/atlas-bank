@@ -1,4 +1,25 @@
-import ApiError from "../utils/ApiError.js";
+import { JWT_CONFIG } from "../config/jwt.config.js";
+
+import {
+    MAX_LOGIN_ATTEMPTS,
+    ACCOUNT_LOCK_TIME,
+} from "../constants/auth.constants.js";
+
+import {
+    comparePassword,
+    hashPassword,
+} from "../helpers/bcrypt.helper.js";
+
+import {
+    generateAccessToken,
+    generateRefreshToken,
+    verifyRefreshToken,
+} from "../helpers/jwt.helper.js";
+
+import { validatePasswordStrength } from "../helpers/password.helper.js";
+import { hashRefreshToken } from "../helpers/refreshToken.helper.js";
+import { generateRandomToken } from "../helpers/token.helper.js";
+
 import {
     createUser,
     emailExists,
@@ -10,20 +31,13 @@ import {
     incrementLoginAttempts,
     lockAccount,
     resetLoginAttempts,
+    saveRefreshToken,
+    findUserByRefreshToken,
 } from "../repositories/auth.repository.js";
-import {
-    MAX_LOGIN_ATTEMPTS,
-    ACCOUNT_LOCK_TIME,
-} from "../constants/auth.constants.js";
-import { comparePassword } from "../helpers/bcrypt.helper.js";
-import { hashPassword } from "../helpers/bcrypt.helper.js";
-import { validatePasswordStrength } from "../helpers/password.helper.js";
-import { generateRandomToken } from "../helpers/token.helper.js";
+
 import { sendVerificationEmail } from "./email.service.js";
-import {
-    generateAccessToken,
-    generateRefreshToken,
-} from "../helpers/jwt.helper.js";
+
+import ApiError from "../utils/ApiError.js";
 
 /* ---------- 1. REGISTER USER (Ensure 'export const') ---------- */
 export const registerUser = async (userData) => {
@@ -171,6 +185,18 @@ export const login = async (email, password) => {
         role: updatedUser.role,
     });
 
+    const tokenHash = hashRefreshToken(refreshToken);
+
+    const expiresAt = new Date(
+        Date.now() + 7 * 24 * 60 * 60 * 1000
+    );
+
+    await saveRefreshToken(
+        updatedUser._id,
+        tokenHash,
+        expiresAt
+    );
+
     // Remove Sensitive Fields
     updatedUser.password = undefined;
     updatedUser.emailVerificationToken = undefined;
@@ -181,5 +207,66 @@ export const login = async (email, password) => {
         accessToken,
         refreshToken,
         user: updatedUser,
+    };
+};
+
+export const refreshAccessToken = async (refreshToken) => {
+    if (!refreshToken) {
+        throw new ApiError(401, "Refresh token is required.");
+    }
+
+    // Verify Refresh Token
+    verifyRefreshToken(refreshToken);
+
+    // Hash Refresh Token
+    const tokenHash = hashRefreshToken(refreshToken);
+
+    // Find User by Refresh Token
+    const user = await findUserByRefreshToken(tokenHash);
+
+    if (!user) {
+        throw new ApiError(401, "Invalid refresh token.");
+    }
+
+    // Email Verification Check
+    if (!user.isEmailVerified) {
+        throw new ApiError(
+            403,
+            "Please verify your email before continuing."
+        );
+    }
+
+    // Account Status Check
+    if (user.status !== "active") {
+        throw new ApiError(
+            403,
+            "Your account is not active. Please contact support."
+        );
+    }
+
+    // Check Token Exists
+    const storedToken = user.refreshTokens.find(
+        (token) => token.tokenHash === tokenHash
+    );
+
+    if (!storedToken) {
+        throw new ApiError(401, "Refresh token not found.");
+    }
+
+    // Check Token Expiry
+    if (storedToken.expiresAt < new Date()) {
+        throw new ApiError(401, "Refresh token has expired.");
+    }
+
+    // Generate New Access Token
+    const accessToken = generateAccessToken({
+        id: user._id,
+        email: user.email,
+        role: user.role,
+    });
+
+    return {
+        message: "Access token refreshed successfully.",
+        accessToken,
     };
 };

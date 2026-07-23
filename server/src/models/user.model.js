@@ -94,6 +94,28 @@ const userSchema = new mongoose.Schema(
             },
         },
 
+        passwordReset: {
+            codeHash: {
+                type: String,
+                default: null,
+            },
+
+            expiresAt: {
+                type: Date,
+                default: null,
+            },
+
+            attempts: {
+                type: Number,
+                default: 0,
+            },
+
+            lastSentAt: {
+                type: Date,
+                default: null,
+            },
+        },
+
         // -----------------------
         // Account Status
         // -----------------------

@@ -132,3 +132,51 @@ export const refreshAccessToken = async (req, res, next) => {
         next(error);
     }
 };
+
+// ==========================
+// FORGOT PASSWORD (Send Reset OTP)
+// ==========================
+export const forgotPassword = async (req, res) => {
+    try {
+        const result = await authService.forgotPassword(
+            req.body.email
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: result.message,
+        });
+    } catch (error) {
+        return res.status(error.statusCode || 400).json({
+            success: false,
+            message:
+                error.message ||
+                "Failed to send password reset verification code.",
+        });
+    }
+};
+
+export const verifyResetCode = async (req, res) => {
+    try {
+        const result =
+            await authService.verifyResetCode(
+                req.body.email,
+                req.body.code
+            );
+
+        return res.status(200).json({
+            success: true,
+            message: result.message,
+            resetToken: result.resetToken,
+        });
+    } catch (error) {
+        return res.status(
+            error.statusCode || 400
+        ).json({
+            success: false,
+            message:
+                error.message ||
+                "Failed to verify password reset code.",
+        });
+    }
+};

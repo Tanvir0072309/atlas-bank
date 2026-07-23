@@ -58,3 +58,20 @@ export const verifyRefreshToken = (token) => {
         JWT_CONFIG.refreshToken.secret
     );
 };
+
+export const generatePasswordResetToken = (payload) => {
+    return jwt.sign(
+        payload,
+        JWT_CONFIG.passwordResetToken.secret,
+        {
+            expiresIn: JWT_CONFIG.passwordResetToken.expiresIn,
+        }
+    );
+};
+
+export const verifyPasswordResetToken = (token) => {
+    return jwt.verify(
+        token,
+        JWT_CONFIG.passwordResetToken.secret
+    );
+};

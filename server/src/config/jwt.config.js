@@ -8,4 +8,8 @@ export const JWT_CONFIG = {
         expiresIn: process.env.JWT_REFRESH_EXPIRES_IN,
         expiresInMs: 7 * 24 * 60 * 60 * 1000,
     },
+    passwordResetToken: {
+        secret: process.env.JWT_PASSWORD_RESET_SECRET,
+        expiresIn: process.env.JWT_PASSWORD_RESET_EXPIRES_IN,
+    },
 };

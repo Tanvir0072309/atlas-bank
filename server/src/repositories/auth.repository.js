@@ -235,3 +235,63 @@ export const findUserByEmailForLoginVerification = async (
 ) => {
     return await User.findOne({ email });
 };    
+
+
+export const updatePasswordResetData = async (
+    userId,
+    codeHash,
+    expiresAt,
+    lastSentAt
+) => {
+    return await User.findByIdAndUpdate(
+        userId,
+        {
+            $set: {
+                "passwordReset.codeHash": codeHash,
+                "passwordReset.expiresAt": expiresAt,
+                "passwordReset.attempts": 0,
+                "passwordReset.lastSentAt": lastSentAt,
+            },
+        },
+        {
+            new: true,
+        }
+    );
+};
+
+export const findUserByEmailForPasswordReset = async (
+    email
+) => {
+    return await User.findOne({ email });
+};
+
+export const clearPasswordResetData = async (userId) => {
+    return await User.findByIdAndUpdate(
+        userId,
+        {
+            $set: {
+                "passwordReset.codeHash": null,
+                "passwordReset.expiresAt": null,
+                "passwordReset.attempts": 0,
+                "passwordReset.lastSentAt": null,
+            },
+        },
+        {
+            new: true,
+        }
+    );
+};
+
+export const incrementPasswordResetAttempts = async (userId) => {
+    return await User.findByIdAndUpdate(
+        userId,
+        {
+            $inc: {
+                "passwordReset.attempts": 1,
+            },
+        },
+        {
+            new: true,
+        }
+    );
+};

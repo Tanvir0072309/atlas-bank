@@ -1,5 +1,7 @@
 import { JWT_CONFIG } from "../config/jwt.config.js";
 
+import crypto from "crypto";
+
 import {
     MAX_LOGIN_ATTEMPTS,
     ACCOUNT_LOCK_TIME,
@@ -13,7 +15,9 @@ import {
 import {
     generateAccessToken,
     generateRefreshToken,
+    generatePasswordResetToken,
     verifyRefreshToken,
+    verifyPasswordResetToken,
 } from "../helpers/jwt.helper.js";
 
 import { validatePasswordStrength } from "../helpers/password.helper.js";
@@ -36,11 +40,16 @@ import {
     saveLoginVerification,
     findUserByEmailForLoginVerification,
     clearLoginVerification,
+    updatePasswordResetData,
+    findUserByEmailForPasswordReset,
+    incrementPasswordResetAttempts,
+    clearPasswordResetData,
 } from "../repositories/auth.repository.js";
 
 import {
     sendVerificationEmail,
     sendLoginVerificationEmail,
+    sendPasswordResetEmail,
 } from "./email.service.js";
 
 import ApiError from "../utils/ApiError.js";
@@ -375,5 +384,157 @@ export const refreshAccessToken = async (refreshToken) => {
     return {
         message: "Access token refreshed successfully.",
         accessToken,
+    };
+};
+
+export const forgotPassword = async (email) => {
+    if (!email) {
+        throw new ApiError(400, "Email is required.");
+    }
+
+    // Find User
+    const user = await findUserByEmail(email);
+
+    // Generic Response (Prevent Email Enumeration)
+    if (!user) {
+        return {
+            message:
+                "If an account exists with this email, a verification code has been sent.",
+        };
+    }
+
+    // Email Verification Check
+    if (!user.isEmailVerified) {
+        return {
+            message:
+                "If an account exists with this email, a verification code has been sent.",
+        };
+    }
+
+    // Resend Limit (30 Seconds)
+    if (
+        user.passwordReset.lastSentAt &&
+        Date.now() -
+        new Date(user.passwordReset.lastSentAt).getTime() <
+        30 * 1000
+    ) {
+        throw new ApiError(
+            429,
+            "Please wait before requesting another verification code."
+        );
+    }
+
+    // Generate Verification Code
+    const verificationCode = generateVerificationCode();
+
+    // Hash Verification Code
+    const codeHash = hashVerificationCode(verificationCode);
+
+    // Expiry (10 Minutes)
+    const expiresAt = new Date(
+        Date.now() + 10 * 60 * 1000
+    );
+
+    // Save Verification Data
+    await updatePasswordResetData(
+        user._id,
+        codeHash,
+        expiresAt,
+        new Date()
+    );
+
+    // Send Email
+    await sendPasswordResetEmail(
+        user.email,
+        user.fullName,
+        verificationCode
+    );
+
+    return {
+        message:
+            "If an account exists with this email, a verification code has been sent.",
+    };
+};
+
+export const verifyResetCode = async (email, code) => {
+    // Validate Input
+    if (!email || !code) {
+        throw new ApiError(
+            400,
+            "Email and verification code are required."
+        );
+    }
+
+    // Find User
+    const user =
+        await findUserByEmailForPasswordReset(email);
+
+    if (!user) {
+        throw new ApiError(404, "User not found.");
+    }
+
+    // Check Pending Password Reset
+    if (!user.passwordReset.codeHash) {
+        throw new ApiError(
+            400,
+            "No pending password reset request found."
+        );
+    }
+
+    // Check Expiry
+    if (
+        user.passwordReset.expiresAt < new Date()
+    ) {
+        throw new ApiError(
+            400,
+            "Verification code has expired."
+        );
+    }
+
+    // Max Attempts
+    if (
+        user.passwordReset.attempts >= 5
+    ) {
+        await clearPasswordResetData(user._id);
+
+        throw new ApiError(
+            429,
+            "Too many incorrect attempts. Please request a new verification code."
+        );
+    }
+
+    // Hash Entered Code
+    const codeHash =
+        hashVerificationCode(code);
+
+    // Compare Code
+    if (
+        codeHash !==
+        user.passwordReset.codeHash
+    ) {
+        await incrementPasswordResetAttempts(
+            user._id
+        );
+
+        throw new ApiError(
+            401,
+            "Invalid verification code."
+        );
+    }
+
+    // Clear Password Reset Data
+
+    // Generate Password Reset Token
+    const resetToken =
+        generatePasswordResetToken({
+            id: user._id,
+            email: user.email,
+            purpose: "password-reset",
+        });
+
+    return {
+        message:
+            "Verification successful.",
+        resetToken,
     };
 };

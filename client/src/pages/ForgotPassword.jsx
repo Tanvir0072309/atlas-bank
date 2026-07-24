@@ -1,29 +1,32 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import AuthLayout from "../components/auth/AuthLayout.jsx";
-import { authService } from "../services/auth.service";
-import { isValidEmail } from "../utils/validators";
+import api from "../api/axios";
 import { ROUTES } from "../utils/constants";
 
 export default function ForgotPassword() {
-  const navigate = useNavigate();
   const [email, setEmail] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!isValidEmail(email)) {
-      setError("Enter a valid email address.");
-      return;
-    }
     setError("");
     setLoading(true);
+
     try {
-      await authService.forgotPassword({ email });
-      navigate(ROUTES.RESET_PASSWORD, { state: { email } });
+      // ✅ Exact API as per doc (/api/auth/forgot-password)
+      await api.post("/auth/forgot-password", { email });
+
+      // Navigate to Verify Reset Code page with email state
+      navigate(ROUTES.VERIFY_RESET_CODE || "/verify-reset-code", {
+        state: { email },
+      });
     } catch (err) {
-      setError(err?.response?.data?.message || "Couldn't find an account with that email.");
+      setError(
+        err?.response?.data?.message || "Failed to send reset code. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -32,41 +35,37 @@ export default function ForgotPassword() {
   return (
     <AuthLayout
       eyebrow="Account Recovery"
-      title="Reset Your Password"
-      subtitle="Enter your registered email address to receive a verification code."
+      title="Forgot Password?"
+      subtitle="Enter your registered email address to receive an OTP code."
     >
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
-        {error && (
-          <p className="rounded-xl bg-rose-50 border border-rose-200 px-3 py-2 text-xs font-semibold text-[#800A38]">
-            {error}
-          </p>
-        )}
+      {error && (
+        <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+          {error}
+        </div>
+      )}
 
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-xs font-bold text-slate-700 mb-1">Email Address</label>
+          <label className="block text-sm font-medium text-slate-300 mb-1">
+            Email Address
+          </label>
           <input
             type="email"
-            placeholder="you@example.com"
+            required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-xs font-semibold text-slate-800 focus:border-[#800A38] focus:outline-none focus:ring-1 focus:ring-[#800A38]"
+            placeholder="tanvir@gmail.com"
+            className="w-full px-4 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500"
           />
         </div>
 
         <button
           type="submit"
           disabled={loading}
-          className="mt-2 w-full rounded-full bg-[#800A38] py-3 text-xs font-extrabold text-white shadow-md hover:bg-[#A30E4A] transition-all disabled:opacity-60"
+          className="w-full py-3 px-4 bg-gradient-to-r from-red-600 to-crimson-600 hover:from-red-500 hover:to-crimson-500 text-white font-semibold rounded-xl shadow-lg transition duration-200 disabled:opacity-50 cursor-pointer"
         >
-          {loading ? "Sending..." : "Send Reset Code"}
+          {loading ? "Sending Code..." : "Send Reset Code"}
         </button>
-
-        <p className="text-center text-xs text-slate-500 mt-2">
-          Remembered it?{" "}
-          <Link to={ROUTES.LOGIN} className="font-bold text-[#800A38] hover:underline">
-            Back to Sign In
-          </Link>
-        </p>
       </form>
     </AuthLayout>
   );

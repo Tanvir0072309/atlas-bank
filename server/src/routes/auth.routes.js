@@ -15,6 +15,7 @@ router.post("/verify-login", authController.verifyLogin);
 router.post("/refresh-token", authController.refreshAccessToken);
 router.post("/forgot-password", authController.forgotPassword);
 router.post("/verify-reset-code", authController.verifyResetCode);
+router.post("/reset-password",authController.resetPassword);
 
 // ==========================================
 // Email Verification

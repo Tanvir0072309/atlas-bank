@@ -1,53 +1,53 @@
-import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import AuthLayout from "../components/auth/AuthLayout.jsx";
-import Input from "../components/common/Input.jsx";
-import PasswordInput from "../components/auth/PasswordInput.jsx";
-import Button from "../components/common/Button.jsx";
-import { authService } from "../services/auth.service";
-import { isValidPassword } from "../utils/validators";
+import api from "../api/axios";
 import { ROUTES } from "../utils/constants";
 
 export default function ResetPassword() {
-  const location = useLocation();
   const navigate = useNavigate();
-  const [form, setForm] = useState({
-    email: location.state?.email || "",
-    otp: "",
-    password: "",
-    confirmPassword: "",
-  });
-  const [errors, setErrors] = useState({});
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [serverError, setServerError] = useState("");
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: undefined }));
-  };
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const nextErrors = {};
-    if (!form.otp || form.otp.length < 6) nextErrors.otp = "Enter the 6-digit code.";
-    if (!isValidPassword(form.password))
-      nextErrors.password = "Password needs 8+ characters, upper & lower case, a number and a symbol.";
-    if (form.password !== form.confirmPassword)
-      nextErrors.confirmPassword = "Passwords don't match.";
+    setError("");
 
-    if (Object.keys(nextErrors).length) {
-      setErrors(nextErrors);
+    if (newPassword !== confirmPassword) {
+      setError("Passwords do not match");
       return;
     }
 
-    setServerError("");
+    // ✅ Get resetToken from sessionStorage
+    const resetToken = sessionStorage.getItem("resetToken");
+    if (!resetToken) {
+      setError("Session expired. Please start the password reset process again.");
+      return;
+    }
+
     setLoading(true);
+
     try {
-      await authService.resetPassword(form);
-      navigate(ROUTES.LOGIN, { state: { reset: true } });
+      // ✅ Step 3: Reset Password
+      await api.post("/auth/reset-password", {
+        resetToken,
+        newPassword,
+        confirmPassword,
+      });
+
+      // ✅ Clean up resetToken from sessionStorage
+      sessionStorage.removeItem("resetToken");
+
+      // ✅ Redirect to Login Page
+      navigate(ROUTES.LOGIN || "/login", {
+        state: { message: "Password reset successfully. Please login again." },
+      });
     } catch (err) {
-      setServerError(err?.response?.data?.message || "That code is invalid or expired.");
+      setError(
+        err?.response?.data?.message || "Failed to reset password. Try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -55,62 +55,48 @@ export default function ResetPassword() {
 
   return (
     <AuthLayout
-      eyebrow="Account recovery"
-      title="Set a new password."
-      subtitle="Choose something strong you haven't used before."
+      eyebrow="Security"
+      title="Reset Your Password"
+      subtitle="Enter your new password below."
     >
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
+      {error && (
+        <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+          {error}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <h2 className="font-display text-2xl text-ink">Create new password</h2>
-          <p className="mt-1 text-sm text-muted">
-            Enter the code sent to <span className="font-semibold text-ink">{form.email}</span>.
-          </p>
+          <label className="block text-sm font-medium text-slate-300 mb-1">New Password</label>
+          <input
+            type="password"
+            required
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            placeholder="Password@123"
+            className="w-full px-4 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-white"
+          />
         </div>
 
-        {serverError && (
-          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-600">
-            {serverError}
-          </p>
-        )}
+        <div>
+          <label className="block text-sm font-medium text-slate-300 mb-1">Confirm Password</label>
+          <input
+            type="password"
+            required
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            placeholder="Password@123"
+            className="w-full px-4 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-white"
+          />
+        </div>
 
-        <Input
-          label="Email address"
-          name="email"
-          type="email"
-          value={form.email}
-          onChange={handleChange}
-          error={errors.email}
-        />
-        <Input
-          label="6-digit code"
-          name="otp"
-          inputMode="numeric"
-          maxLength={6}
-          placeholder="123456"
-          value={form.otp}
-          onChange={handleChange}
-          error={errors.otp}
-        />
-        <PasswordInput
-          label="New password"
-          name="password"
-          value={form.password}
-          onChange={handleChange}
-          error={errors.password}
-          autoComplete="new-password"
-        />
-        <PasswordInput
-          label="Confirm new password"
-          name="confirmPassword"
-          value={form.confirmPassword}
-          onChange={handleChange}
-          error={errors.confirmPassword}
-          autoComplete="new-password"
-        />
-
-        <Button type="submit" loading={loading} className="mt-2">
-          Reset password
-        </Button>
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-3 px-4 bg-gradient-to-r from-red-600 to-crimson-600 text-white font-semibold rounded-xl shadow-lg disabled:opacity-50 cursor-pointer"
+        >
+          {loading ? "Resetting Password..." : "Reset Password"}
+        </button>
       </form>
     </AuthLayout>
   );

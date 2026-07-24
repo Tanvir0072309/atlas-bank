@@ -12,6 +12,7 @@ import ForgotPassword from "../pages/ForgotPassword.jsx";
 import ResetPassword from "../pages/ResetPassword.jsx";
 import Dashboard from "../pages/Dashboard.jsx";
 import NotFound from "../pages/NotFound.jsx";
+import VerifyResetCode from "../pages/VerifyResetCode.jsx";
 
 import { ROUTES } from "../utils/constants";
 
@@ -28,6 +29,7 @@ export default function AppRoutes() {
           <Route path={ROUTES.LOGIN} element={<Login />} />
           <Route path={ROUTES.VERIFY_EMAIL} element={<VerifyEmail />} />
           <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPassword />} />
+          <Route path={ROUTES.VERIFY_RESET_CODE} element={<VerifyResetCode />} />
           <Route path={ROUTES.RESET_PASSWORD} element={<ResetPassword />} />
         </Route>
       </Route>

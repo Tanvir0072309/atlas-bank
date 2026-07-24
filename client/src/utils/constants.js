@@ -2,8 +2,8 @@
 export const BANK_NAME = "Atlas";
 export const BANK_TAGLINE = "Banking that moves as fast as you do.";
 
-// Backend API Base URL
-export const API_BASE_URL = "http://localhost:5000/api";
+
+export const API_BASE_URL = "http://localhost:5000/api/v1";
 
 // LocalStorage Keys for Authentication
 export const STORAGE_KEYS = {
@@ -18,6 +18,7 @@ export const ROUTES = {
   LOGIN: "/login",
   REGISTER: "/register",
   FORGOT_PASSWORD: "/forgot-password",
+  VERIFY_RESET_CODE: "/verify-reset-code",
   RESET_PASSWORD: "/reset-password",
   VERIFY_EMAIL: "/verify-email",
   DASHBOARD: "/dashboard",

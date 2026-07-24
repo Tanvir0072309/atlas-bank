@@ -15,15 +15,36 @@ export const AuthProvider = ({ children }) => {
   const isAuthenticated = !!user;
 
   // ==========================
+  // COMPLETE LOGIN
+  // ==========================
+  const completeLogin = (accessToken, userData) => {
+    if (accessToken) {
+      localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
+    }
+
+    if (userData) {
+      localStorage.setItem(
+        STORAGE_KEYS.USER,
+        JSON.stringify(userData)
+      );
+      setUser(userData);
+    }
+  };
+
+  // ==========================
   // REGISTER
   // ==========================
   const register = async (userData) => {
     setLoading(true);
+
     try {
-      const response = await api.post("/v1/auth/register", userData);
+      const response = await api.post("/auth/register", userData);
 
       if (response.data?.token) {
-        localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, response.data.token);
+        localStorage.setItem(
+          STORAGE_KEYS.ACCESS_TOKEN,
+          response.data.token
+        );
       }
 
       if (response.data?.user) {
@@ -31,6 +52,7 @@ export const AuthProvider = ({ children }) => {
           STORAGE_KEYS.USER,
           JSON.stringify(response.data.user)
         );
+
         setUser(response.data.user);
       }
 
@@ -41,38 +63,38 @@ export const AuthProvider = ({ children }) => {
   };
 
   // ==========================
-  // LOGIN (STEP 1: Triggers OTP Email)
+  // LOGIN (STEP 1)
   // ==========================
   const login = async (credentials) => {
-    // Rely on component's local loading state for smooth UI transition
-    const response = await api.post("/v1/auth/login", credentials);
-    return response.data; // MUST return response payload
+    const response = await api.post(
+      "/auth/login",
+      credentials
+    );
+
+    return response.data;
   };
 
   // ==========================
-  // VERIFY LOGIN (STEP 2: OTP Verification)
+  // VERIFY LOGIN (STEP 2)
   // ==========================
   const verifyLogin = async (email, code) => {
     setLoading(true);
+
     try {
-      const response = await api.post("/v1/auth/verify-login", {
-        email,
-        code,
-      });
+      const response = await api.post(
+        "/auth/verify-login",
+        {
+          email,
+          code,
+        }
+      );
 
-      const { accessToken, user: userData } = response.data;
+      const {
+        accessToken,
+        user: userData,
+      } = response.data;
 
-      if (accessToken) {
-        localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
-      }
-
-      if (userData) {
-        localStorage.setItem(
-          STORAGE_KEYS.USER,
-          JSON.stringify(userData)
-        );
-        setUser(userData);
-      }
+      completeLogin(accessToken, userData);
 
       return response.data;
     } finally {
@@ -84,9 +106,18 @@ export const AuthProvider = ({ children }) => {
   // LOGOUT
   // ==========================
   const logout = () => {
-    localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-    localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-    localStorage.removeItem(STORAGE_KEYS.USER);
+    localStorage.removeItem(
+      STORAGE_KEYS.ACCESS_TOKEN
+    );
+
+    localStorage.removeItem(
+      STORAGE_KEYS.REFRESH_TOKEN
+    );
+
+    localStorage.removeItem(
+      STORAGE_KEYS.USER
+    );
+
     setUser(null);
   };
 
@@ -96,9 +127,11 @@ export const AuthProvider = ({ children }) => {
         user,
         loading,
         isAuthenticated,
+
         register,
         login,
         verifyLogin,
+        completeLogin,
         logout,
       }}
     >

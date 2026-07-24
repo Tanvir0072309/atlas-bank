@@ -99,19 +99,22 @@ const userSchema = new mongoose.Schema(
                 type: String,
                 default: null,
             },
-
             expiresAt: {
                 type: Date,
                 default: null,
             },
-
             attempts: {
                 type: Number,
                 default: 0,
             },
-
             lastSentAt: {
                 type: Date,
+                default: null,
+            },
+
+            // One-time reset token identifier
+            resetTokenId: {
+                type: String,
                 default: null,
             },
         },

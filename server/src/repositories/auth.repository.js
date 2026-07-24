@@ -17,9 +17,8 @@ export const findUserByPhone = async (phone) => {
 };
 
 export const findUserById = async (userId) => {
-    return await User.findById(userId);
+    return await User.findById(userId).select("+password");
 };
-
 /* ---------- EMAIL VERIFICATION (VERIFIED & FIXED) ---------- */
 
 export const findUserByVerificationToken = async (token) => {
@@ -241,7 +240,8 @@ export const updatePasswordResetData = async (
     userId,
     codeHash,
     expiresAt,
-    lastSentAt
+    lastSentAt,
+    resetTokenId = null
 ) => {
     return await User.findByIdAndUpdate(
         userId,
@@ -251,6 +251,7 @@ export const updatePasswordResetData = async (
                 "passwordReset.expiresAt": expiresAt,
                 "passwordReset.attempts": 0,
                 "passwordReset.lastSentAt": lastSentAt,
+                "passwordReset.resetTokenId": resetTokenId,
             },
         },
         {
@@ -274,6 +275,7 @@ export const clearPasswordResetData = async (userId) => {
                 "passwordReset.expiresAt": null,
                 "passwordReset.attempts": 0,
                 "passwordReset.lastSentAt": null,
+                "passwordReset.resetTokenId": null,
             },
         },
         {
@@ -288,6 +290,23 @@ export const incrementPasswordResetAttempts = async (userId) => {
         {
             $inc: {
                 "passwordReset.attempts": 1,
+            },
+        },
+        {
+            new: true,
+        }
+    );
+};
+
+export const updatePassword = async (
+    userId,
+    hashedPassword
+) => {
+    return await User.findByIdAndUpdate(
+        userId,
+        {
+            $set: {
+                password: hashedPassword,
             },
         },
         {

@@ -2,7 +2,7 @@ import axios from "axios";
 import { API_BASE_URL, STORAGE_KEYS, ROUTES } from "../utils/constants";
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: API_BASE_URL, // Ensure constants.js has: http://localhost:5000/api/v1
   headers: { "Content-Type": "application/json" },
   withCredentials: true,
 });
@@ -20,10 +20,19 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    const isLoginEndpoint = error.config?.url?.includes("/v1/auth/login") || error.config?.url?.includes("/v1/auth/verify-login");
+    const requestUrl = error.config?.url || "";
 
-    // Clear session & redirect ONLY if the token failed on a protected route (NOT login endpoints)
-    if (error.response?.status === 401 && !isLoginEndpoint) {
+    // Dynamic check for all unauthenticated/public auth endpoints
+    const isPublicAuthEndpoint =
+      requestUrl.includes("/auth/login") ||
+      requestUrl.includes("/auth/verify-login") ||
+      requestUrl.includes("/auth/forgot-password") ||
+      requestUrl.includes("/auth/verify-reset-code") ||
+      requestUrl.includes("/auth/reset-password") ||
+      requestUrl.includes("/auth/register");
+
+    // Clear session & redirect ONLY if a PROTECTED route throws 401
+    if (error.response?.status === 401 && !isPublicAuthEndpoint) {
       localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
       localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
       localStorage.removeItem(STORAGE_KEYS.USER);

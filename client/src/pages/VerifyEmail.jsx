@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import AuthLayout from "../components/auth/AuthLayout.jsx";
-import api from "../api/axios";
+import { authService } from "../services/auth.service";
+import { useAuth } from "../hooks/useAuth";
 import { STORAGE_KEYS, ROUTES } from "../utils/constants";
 
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
+
   const navigate = useNavigate();
+  const { completeLogin } = useAuth();
 
   const hasVerified = useRef(false);
 
@@ -21,39 +24,40 @@ export default function VerifyEmail() {
       return;
     }
 
-    // Prevent duplicate API calls in React Strict Mode
     if (hasVerified.current) return;
     hasVerified.current = true;
 
     const verifyToken = async () => {
       try {
-        const { data } = await api.get(
-          `/v1/auth/verify-email?token=${token}`
-        );
+        const data = await authService.verifyEmail(token);
 
-        if (data?.token) {
-          localStorage.setItem(
-            STORAGE_KEYS.ACCESS_TOKEN,
-            data.token
-          );
-        }
+        const accessToken =
+          data?.accessToken || data?.token;
 
-        if (data?.user) {
+        // Update AuthContext + LocalStorage
+        completeLogin(accessToken, data?.user);
+
+        // Optional
+        if (data?.refreshToken) {
           localStorage.setItem(
-            STORAGE_KEYS.USER,
-            JSON.stringify(data.user)
+            STORAGE_KEYS.REFRESH_TOKEN,
+            data.refreshToken
           );
         }
 
         setStatus("success");
 
         setTimeout(() => {
-          navigate(ROUTES.DASHBOARD || "/dashboard", {
-            replace: true,
-          });
-        }, 1500);
+          navigate(
+            ROUTES.DASHBOARD || "/dashboard",
+            {
+              replace: true,
+            }
+          );
+        }, 1200);
       } catch (err) {
         setStatus("error");
+
         setServerError(
           err?.response?.data?.message ||
           "Invalid or expired verification link."
@@ -62,7 +66,7 @@ export default function VerifyEmail() {
     };
 
     verifyToken();
-  }, [token, navigate]);
+  }, [token, navigate, completeLogin]);
 
   return (
     <AuthLayout
@@ -73,7 +77,7 @@ export default function VerifyEmail() {
       <div className="flex flex-col items-center justify-center py-6 text-center gap-4">
         {status === "verifying" && (
           <>
-            <div className="w-12 h-12 border-4 border-[#800A38]/20 border-t-[#800A38] rounded-full animate-spin"></div>
+            <div className="w-12 h-12 border-4 border-[#800A38]/20 border-t-[#800A38] rounded-full animate-spin" />
 
             <p className="text-sm font-semibold text-slate-700">
               Verifying your email...
@@ -108,7 +112,7 @@ export default function VerifyEmail() {
             </h2>
 
             <p className="text-sm text-slate-500">
-              Redirecting you to your dashboard...
+              Redirecting to your dashboard...
             </p>
           </>
         )}
@@ -141,7 +145,9 @@ export default function VerifyEmail() {
 
             <button
               onClick={() =>
-                navigate(ROUTES.LOGIN || "/login")
+                navigate(
+                  ROUTES.LOGIN || "/login"
+                )
               }
               className="mt-4 px-6 py-2 rounded-full bg-[#800A38] text-white hover:bg-[#A30E4A]"
             >

@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { JWT_CONFIG } from "../config/jwt.config.js";
 
@@ -60,13 +61,24 @@ export const verifyRefreshToken = (token) => {
 };
 
 export const generatePasswordResetToken = (payload) => {
-    return jwt.sign(
-        payload,
+    const resetTokenId = crypto.randomUUID();
+
+    const token = jwt.sign(
+        {
+            ...payload,
+            jti: resetTokenId,
+        },
         JWT_CONFIG.passwordResetToken.secret,
         {
-            expiresIn: JWT_CONFIG.passwordResetToken.expiresIn,
+            expiresIn:
+                JWT_CONFIG.passwordResetToken.expiresIn,
         }
     );
+
+    return {
+        token,
+        resetTokenId,
+    };
 };
 
 export const verifyPasswordResetToken = (token) => {

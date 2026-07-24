@@ -55,15 +55,34 @@ export const login = async (req, res) => {
 // ==========================
 // VERIFY EMAIL (Account Activation Link)
 // ==========================
+// ==========================
+// VERIFY EMAIL (Account Activation Link)
+// ==========================
 export const verifyEmail = async (req, res) => {
     try {
         const { token } = req.query;
+
         const result = await authService.verifyEmailToken(token);
+
+        // Set Refresh Token HttpOnly Cookie
+        res.cookie(
+            "refreshToken",
+            result.refreshToken,
+            {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                sameSite: "strict",
+                maxAge:
+                    JWT_CONFIG.refreshToken.expiresInMs ||
+                    7 * 24 * 60 * 60 * 1000,
+            }
+        );
 
         return res.status(200).json({
             success: true,
-            message: "Email verified successfully!",
-            ...result,
+            message: result.message || "Email verified successfully!",
+            accessToken: result.accessToken,
+            user: result.user,
         });
     } catch (error) {
         return res.status(error.statusCode || 400).json({
@@ -177,6 +196,37 @@ export const verifyResetCode = async (req, res) => {
             message:
                 error.message ||
                 "Failed to verify password reset code.",
+        });
+    }
+};
+
+export const resetPassword = async (req, res) => {
+    try {
+        const {
+            resetToken,
+            newPassword,
+            confirmPassword,
+        } = req.body;
+
+        const result =
+            await authService.resetPassword(
+                resetToken,
+                newPassword,
+                confirmPassword
+            );
+
+        return res.status(200).json({
+            success: true,
+            message: result.message,
+        });
+    } catch (error) {
+        return res.status(
+            error.statusCode || 500
+        ).json({
+            success: false,
+            message:
+                error.message ||
+                "Failed to reset password.",
         });
     }
 };

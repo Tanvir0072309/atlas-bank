@@ -57,7 +57,7 @@ export default function Register() {
     setServerError("");
 
     try {
-      await api.post("/v1/auth/register", formData);
+      await api.post("/auth/register", formData);
       setIsSent(true);
     } catch (err) {
       setServerError(

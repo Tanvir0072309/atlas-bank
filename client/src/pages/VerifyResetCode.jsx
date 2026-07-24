@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, Link } from "react-router-dom";
 import AuthLayout from "../components/auth/AuthLayout.jsx";
 import api from "../api/axios";
 import { ROUTES } from "../utils/constants";
@@ -19,15 +19,12 @@ export default function VerifyResetCode() {
         setLoading(true);
 
         try {
-            // ✅ Step 2: Verify OTP
             const { data } = await api.post("/auth/verify-reset-code", { email, code });
 
-            // ✅ Save resetToken in sessionStorage as per docs
             if (data?.resetToken) {
                 sessionStorage.setItem("resetToken", data.resetToken);
             }
 
-            // Navigate to Reset Password Page
             navigate(ROUTES.RESET_PASSWORD || "/reset-password");
         } catch (err) {
             setError(
@@ -44,28 +41,33 @@ export default function VerifyResetCode() {
             title="Enter Reset Code"
             subtitle={`We've sent a 6-digit code to ${email || "your email"}`}
         >
-            {error && (
-                <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
-                    {error}
-                </div>
-            )}
+            <form onSubmit={handleSubmit} className="flex flex-col gap-3.5 w-full max-w-md mx-auto" noValidate>
+                {error && (
+                    <div className="rounded-xl bg-rose-50 border border-rose-200 px-3.5 py-2 text-xs font-semibold text-[#800A38]">
+                        {error}
+                    </div>
+                )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
                 {!location.state?.email && (
-                    <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-1">Email</label>
+                    <div className="w-full">
+                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                            Email Address
+                        </label>
                         <input
                             type="email"
                             required
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="w-full px-4 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-white"
+                            placeholder="tanvir@gmail.com"
+                            className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-xs font-semibold transition-all outline-none bg-slate-50/50 focus:bg-white focus:border-[#800A38] focus:ring-2 focus:ring-[#800A38]/10 text-slate-800"
                         />
                     </div>
                 )}
 
-                <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">OTP Code</label>
+                <div className="w-full">
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                        OTP Code
+                    </label>
                     <input
                         type="text"
                         required
@@ -73,17 +75,24 @@ export default function VerifyResetCode() {
                         value={code}
                         onChange={(e) => setCode(e.target.value)}
                         placeholder="123456"
-                        className="w-full px-4 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-white text-center tracking-widest text-lg"
+                        className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-center text-base tracking-widest font-bold transition-all outline-none bg-slate-50/50 focus:bg-white focus:border-[#800A38] focus:ring-2 focus:ring-[#800A38]/10 text-slate-800"
                     />
                 </div>
 
                 <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-3 px-4 bg-gradient-to-r from-red-600 to-crimson-600 text-white font-semibold rounded-xl shadow-lg disabled:opacity-50 cursor-pointer"
+                    className="mt-1 w-full rounded-full bg-[#800A38] py-3 text-xs font-extrabold text-white shadow-md shadow-[#800A38]/20 hover:bg-[#A30E4A] transition-all disabled:opacity-60 cursor-pointer"
                 >
                     {loading ? "Verifying..." : "Verify Code"}
                 </button>
+
+                <p className="text-center text-xs text-slate-500 mt-1">
+                    Didn't receive code?{" "}
+                    <Link to={ROUTES.FORGOT_PASSWORD || "/forgot-password"} className="font-extrabold text-[#800A38] hover:underline">
+                        Resend
+                    </Link>
+                </p>
             </form>
         </AuthLayout>
     );

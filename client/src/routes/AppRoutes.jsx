@@ -10,9 +10,20 @@ import Login from "../pages/Login.jsx";
 import VerifyEmail from "../pages/VerifyEmail.jsx";
 import ForgotPassword from "../pages/ForgotPassword.jsx";
 import ResetPassword from "../pages/ResetPassword.jsx";
-import Dashboard from "../pages/Dashboard.jsx";
-import NotFound from "../pages/NotFound.jsx";
 import VerifyResetCode from "../pages/VerifyResetCode.jsx";
+import NotFound from "../pages/NotFound.jsx";
+
+// Dashboard shell + pages
+import DashboardLayout from "../components/dashboard/DashboardLayout.jsx";
+import Dashboard from "../pages/dashboard/Dashboard.jsx";
+import MyAccounts from "../pages/dashboard/MyAccounts.jsx";
+import TransferMoney from "../pages/dashboard/TransferMoney.jsx";
+import Beneficiaries from "../pages/dashboard/Beneficiaries.jsx";
+import Transactions from "../pages/dashboard/Transactions.jsx";
+import Analytics from "../pages/dashboard/Analytics.jsx";
+import Notifications from "../pages/dashboard/Notifications.jsx";
+import Profile from "../pages/dashboard/Profile.jsx";
+import Settings from "../pages/dashboard/Settings.jsx";
 
 import { ROUTES } from "../utils/constants";
 
@@ -36,8 +47,17 @@ export default function AppRoutes() {
 
       {/* Protected routes (require a logged-in session) */}
       <Route element={<ProtectedRoute />}>
-        <Route element={<MainLayout />}>
-          <Route path={ROUTES.DASHBOARD} element={<Dashboard />} />
+        {/* Dashboard shell — sidebar + topbar wrap every nested page below */}
+        <Route path={ROUTES.DASHBOARD} element={<DashboardLayout />}>
+          <Route index element={<Dashboard />} />
+          <Route path="accounts" element={<MyAccounts />} />
+          <Route path="transfer" element={<TransferMoney />} />
+          <Route path="beneficiaries" element={<Beneficiaries />} />
+          <Route path="transactions" element={<Transactions />} />
+          <Route path="analytics" element={<Analytics />} />
+          <Route path="notifications" element={<Notifications />} />
+          <Route path="profile" element={<Profile />} />
+          <Route path="settings" element={<Settings />} />
         </Route>
       </Route>
 

@@ -52,39 +52,47 @@ export const login = async (req, res) => {
     }
 };
 
-// ==========================
-// VERIFY EMAIL (Account Activation Link)
-// ==========================
-// ==========================
-// VERIFY EMAIL (Account Activation Link)
-// ==========================
 export const verifyEmail = async (req, res) => {
     try {
         const { token } = req.query;
 
+        console.log("\n========== VERIFY EMAIL ==========");
+        console.log("Received Token:", token);
+
         const result = await authService.verifyEmailToken(token);
 
-        // Set Refresh Token HttpOnly Cookie
-        res.cookie(
-            "refreshToken",
-            result.refreshToken,
-            {
+        console.log("Service Result:", result);
+
+        if (result.refreshToken) {
+            res.cookie("refreshToken", result.refreshToken, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === "production",
                 sameSite: "strict",
                 maxAge:
                     JWT_CONFIG.refreshToken.expiresInMs ||
                     7 * 24 * 60 * 60 * 1000,
-            }
+            });
+        }
+
+        console.log("Verified User:", result.user);
+        console.log(
+            "isEmailVerified:",
+            result.user?.isEmailVerified
         );
+        console.log("=================================\n");
 
         return res.status(200).json({
             success: true,
             message: result.message || "Email verified successfully!",
-            accessToken: result.accessToken,
+            accessToken: result.accessToken || result.token,
+            refreshToken: result.refreshToken,
             user: result.user,
         });
     } catch (error) {
+        console.error("\n========== VERIFY EMAIL ERROR ==========");
+        console.error(error);
+        console.error("========================================\n");
+
         return res.status(error.statusCode || 400).json({
             success: false,
             message: error.message || "Verification failed.",

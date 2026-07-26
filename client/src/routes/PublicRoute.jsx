@@ -1,14 +1,19 @@
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import PageLoader from "../components/common/PageLoader.jsx";
 import { ROUTES } from "../utils/constants";
 
 export default function PublicRoute() {
   const { isAuthenticated, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) return <PageLoader />;
 
-  if (isAuthenticated) {
+  // Verify Email page ko redirect mat karo
+  if (
+    isAuthenticated &&
+    !location.pathname.startsWith("/verify-email")
+  ) {
     return <Navigate to={ROUTES.DASHBOARD} replace />;
   }
 

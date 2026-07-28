@@ -5,6 +5,7 @@ import morgan from "morgan";
 import cookieParser from "cookie-parser";
 
 import authRoutes from "./routes/auth.routes.js";
+import accountRoutes from "./routes/account.routes.js";
 
 const app = express();
 
@@ -37,7 +38,11 @@ app.get("/", (req, res) => {
     });
 });
 
+// ==============================
 // API Routes
+// ==============================
+
 app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/accounts", accountRoutes);
 
 export default app;

@@ -1,32 +1,17 @@
-import bcrypt from "bcrypt";
-
-const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS) || 12;
-
 /**
- * Hash a plain text password.
+ * Wraps async route handlers and forwards errors to Express error middleware.
  *
- * @param {string} password
- * @returns {Promise<string>}
+ * @param {Function} requestHandler
+ * @returns {Function}
  */
-export const hashPassword = async (password) => {
-    if (!password || typeof password !== "string") {
-        throw new Error("A valid password is required.");
-    }
-
-    return await bcrypt.hash(password, SALT_ROUNDS);
+const asyncHandler = (requestHandler) => {
+    return async (req, res, next) => {
+        try {
+            await requestHandler(req, res, next);
+        } catch (error) {
+            next(error);
+        }
+    };
 };
 
-/**
- * Compare plain password with hashed password.
- *
- * @param {string} password
- * @param {string} hashedPassword
- * @returns {Promise<boolean>}
- */
-export const comparePassword = async (password, hashedPassword) => {
-    if (!password || !hashedPassword) {
-        throw new Error("Password and hashed password are required.");
-    }
-
-    return await bcrypt.compare(password, hashedPassword);
-};
+export default asyncHandler;

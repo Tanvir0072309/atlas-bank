@@ -56,12 +56,7 @@ export const verifyEmail = async (req, res) => {
     try {
         const { token } = req.query;
 
-        console.log("\n========== VERIFY EMAIL ==========");
-        console.log("Received Token:", token);
-
         const result = await authService.verifyEmailToken(token);
-
-        console.log("Service Result:", result);
 
         if (result.refreshToken) {
             res.cookie("refreshToken", result.refreshToken, {
@@ -74,25 +69,13 @@ export const verifyEmail = async (req, res) => {
             });
         }
 
-        console.log("Verified User:", result.user);
-        console.log(
-            "isEmailVerified:",
-            result.user?.isEmailVerified
-        );
-        console.log("=================================\n");
-
         return res.status(200).json({
             success: true,
             message: result.message || "Email verified successfully!",
             accessToken: result.accessToken || result.token,
-            refreshToken: result.refreshToken,
             user: result.user,
         });
     } catch (error) {
-        console.error("\n========== VERIFY EMAIL ERROR ==========");
-        console.error(error);
-        console.error("========================================\n");
-
         return res.status(error.statusCode || 400).json({
             success: false,
             message: error.message || "Verification failed.",

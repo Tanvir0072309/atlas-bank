@@ -84,6 +84,27 @@ export const verifyEmail = async (req, res) => {
 };
 
 // ==========================
+// RESEND LOGIN OTP
+// (NEW: the frontend's client/src/services/auth.service.js already calls
+// POST /auth/resend-otp, but no route/controller existed for it.)
+// ==========================
+export const resendOtp = async (req, res) => {
+    try {
+        const result = await authService.resendLoginOtp(req.body.email);
+
+        res.status(200).json({
+            success: true,
+            message: result.message,
+        });
+    } catch (error) {
+        res.status(error.statusCode || 400).json({
+            success: false,
+            message: error.message || "Failed to resend verification code.",
+        });
+    }
+};
+
+// ==========================
 // STEP 2: VERIFY LOGIN (OTP Verification & Set Tokens)
 // ==========================
 export const verifyLogin = async (req, res) => {

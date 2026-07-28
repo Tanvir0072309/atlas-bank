@@ -54,3 +54,17 @@ export const generateApiKey = () => {
 export const generateSessionToken = () => {
     return generateRandomToken(48);
 };
+
+/**
+ * NEW: Hash a raw single-use token before storing it in MongoDB.
+ * FIX: the email verification token used to be stored raw and matched by
+ * exact value — anyone with DB read access could activate any pending
+ * account. The raw token should only ever exist in the emailed link; the
+ * database only ever sees this hash.
+ *
+ * @param {string} rawToken
+ * @returns {string}
+ */
+export const hashToken = (rawToken) => {
+    return crypto.createHash("sha256").update(String(rawToken)).digest("hex");
+};

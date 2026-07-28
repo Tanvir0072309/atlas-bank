@@ -14,12 +14,22 @@ const transporter = nodemailer.createTransport({
  * Send Email
  */
 export const sendEmail = async ({ to, subject, html }) => {
-    return transporter.sendMail({
-        from: process.env.SMTP_FROM || '"Atlas Bank" <no-reply@atlasbank.com>',
-        to,
-        subject,
-        html,
-    });
+    try {
+        const info = await transporter.sendMail({
+            from:
+                process.env.SMTP_FROM ||
+                '"Atlas Bank" <no-reply@atlasbank.com>',
+            to,
+            subject,
+            html,
+        });
+
+        console.log("✅ Email Sent:", info);
+        return info;
+    } catch (error) {
+        console.error("❌ Email Error:", error);
+        throw error;
+    }
 };
 
 /**

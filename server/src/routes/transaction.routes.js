@@ -22,6 +22,13 @@ router.post(
     transactionController.withdraw
 );
 
+// Transfer Money (UPI-to-UPI)
+router.post(
+    "/transfer",
+    protect,
+    transactionController.transfer
+);
+
 // Get My Transactions
 router.get(
     "/",

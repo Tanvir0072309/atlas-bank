@@ -9,7 +9,7 @@ export const createUser = async (userData) => {
 /* ---------- FIND ---------- */
 
 export const findUserByEmail = async (email) => {
-    return await User.findOne({ email }).select("+password");
+    return await User.findOne({ email: email?.toLowerCase().trim() }).select("+password");
 };
 
 export const findUserByPhone = async (phone) => {
@@ -19,10 +19,44 @@ export const findUserByPhone = async (phone) => {
 export const findUserById = async (userId) => {
     return await User.findById(userId).select("+password");
 };
-/* ---------- EMAIL VERIFICATION (VERIFIED & FIXED) ---------- */
 
-export const findUserByVerificationToken = async (token) => {
-    return await User.findOne({ emailVerificationToken: token });
+/* ---------- DELETE / DEACTIVATE ---------- */
+
+// Hard delete — used when we must roll back a registration whose
+// verification email failed to send (see auth.service.js:registerUser).
+export const deleteUserById = async (userId) => {
+    return await User.findByIdAndDelete(userId);
+};
+
+/* ---------- EMAIL VERIFICATION (FIXED: token is now looked up by HASH) ---------- */
+
+/**
+ * FIXED: previously the raw verification token was stored in MongoDB and
+ * matched by exact value (findUserByVerificationToken). That meant anyone
+ * with read access to the users collection (a leaked backup, a DBA, a
+ * NoSQL-injection bug elsewhere) could activate any pending account
+ * without ever touching the email. We now store only the SHA-256 hash
+ * of the token (the raw token only ever exists in the emailed link),
+ * consistent with how passwordReset.codeHash is already handled.
+ */
+export const findUserByVerificationTokenHash = async (tokenHash) => {
+    return await User.findOne({
+        emailVerificationToken: tokenHash,
+        emailVerificationExpiresAt: { $gt: new Date() },
+    });
+};
+
+export const setEmailVerificationToken = async (userId, tokenHash, expiresAt) => {
+    return await User.findByIdAndUpdate(
+        userId,
+        {
+            $set: {
+                emailVerificationToken: tokenHash,
+                emailVerificationExpiresAt: expiresAt,
+            },
+        },
+        { new: true }
+    );
 };
 
 export const markEmailAsVerified = async (userId) => {
@@ -43,7 +77,7 @@ export const markEmailAsVerified = async (userId) => {
 /* ---------- EXISTS ---------- */
 
 export const emailExists = async (email) => {
-    return await User.exists({ email });
+    return await User.exists({ email: email?.toLowerCase().trim() });
 };
 
 export const phoneExists = async (phone) => {
@@ -55,15 +89,8 @@ export const phoneExists = async (phone) => {
 export const updateLastLogin = async (userId) => {
     return await User.findByIdAndUpdate(
         userId,
-        {
-            $set: {
-                lastLogin: new Date(),
-            },
-        },
-        {
-            new: true,
-            runValidators: true,
-        }
+        { $set: { lastLogin: new Date() } },
+        { new: true, runValidators: true }
     ).select("-password");
 };
 
@@ -72,9 +99,7 @@ export const updateLastLogin = async (userId) => {
 export const incrementLoginAttempts = async (userId) => {
     return await User.findByIdAndUpdate(
         userId,
-        {
-            $inc: { loginAttempts: 1 },
-        },
+        { $inc: { loginAttempts: 1 } },
         { new: true }
     );
 };
@@ -82,43 +107,21 @@ export const incrementLoginAttempts = async (userId) => {
 export const resetLoginAttempts = async (userId) => {
     return await User.findByIdAndUpdate(
         userId,
-        {
-            loginAttempts: 0,
-            lockUntil: null,
-        },
+        { loginAttempts: 0, lockUntil: null },
         { new: true }
     );
 };
 
 export const lockAccount = async (userId, lockUntil) => {
-    return await User.findByIdAndUpdate(
-        userId,
-        {
-            lockUntil,
-        },
-        { new: true }
-    );
+    return await User.findByIdAndUpdate(userId, { lockUntil }, { new: true });
 };
 
 /* ---------- REFRESH TOKEN ---------- */
 
-export const saveRefreshToken = async (
-    userId,
-    tokenHash,
-    expiresAt,
-    deviceInfo = ""
-) => {
+export const saveRefreshToken = async (userId, tokenHash, expiresAt, deviceInfo = "") => {
     return await User.findByIdAndUpdate(
         userId,
-        {
-            $push: {
-                refreshTokens: {
-                    tokenHash,
-                    expiresAt,
-                    deviceInfo,
-                },
-            },
-        },
+        { $push: { refreshTokens: { tokenHash, expiresAt, deviceInfo } } },
         { new: true }
     );
 };
@@ -126,41 +129,26 @@ export const saveRefreshToken = async (
 export const removeRefreshToken = async (userId, tokenHash) => {
     return await User.findByIdAndUpdate(
         userId,
-        {
-            $pull: {
-                refreshTokens: {
-                    tokenHash,
-                },
-            },
-        },
+        { $pull: { refreshTokens: { tokenHash } } },
         { new: true }
     );
 };
 
 export const removeAllRefreshTokens = async (userId) => {
-    return await User.findByIdAndUpdate(
-        userId,
-        {
-            refreshTokens: [],
-        },
-        { new: true }
-    );
+    return await User.findByIdAndUpdate(userId, { refreshTokens: [] }, { new: true });
 };
 
 export const findUserByRefreshToken = async (tokenHash) => {
     return await User.findOne({
         "refreshTokens.tokenHash": tokenHash,
+        "refreshTokens.revokedAt": null,
     });
 };
 
 /**
- * Save Login Verification Code
+ * Save Login Verification Code (OTP)
  */
-export const saveLoginVerification = async (
-    userId,
-    codeHash,
-    expiresAt
-) => {
+export const saveLoginVerification = async (userId, codeHash, expiresAt) => {
     return await User.findByIdAndUpdate(
         userId,
         {
@@ -171,29 +159,33 @@ export const saveLoginVerification = async (
                 lastSentAt: new Date(),
             },
         },
-        {
-            new: true,
-        }
+        { new: true }
     );
 };
 
 /**
- * Find User By Login Verification Code
+ * FIXED: this used to look up the user by codeHash ALONE
+ * (findUserByLoginVerification), with no email predicate — meaning the
+ * `email` submitted by the client was never actually used to constrain
+ * who could log in, and every failure (wrong code, expired code, wrong
+ * user, whitespace/case mismatch) collapsed into the same generic error
+ * with nothing to distinguish them by. We now always look the user up
+ * by email FIRST, then compare the code hash against that specific
+ * user's stored value in the service layer (see auth.service.js).
  */
-export const findUserByLoginVerification = async (
-    codeHash
-) => {
-    return await User.findOne({
-        "loginVerification.codeHash": codeHash,
-    });
+export const findUserByEmailForLoginVerification = async (email) => {
+    return await User.findOne({ email: email?.toLowerCase().trim() });
 };
 
-/**
- * Clear Login Verification
- */
-export const clearLoginVerification = async (
-    userId
-) => {
+export const incrementLoginVerificationAttempts = async (userId) => {
+    return await User.findByIdAndUpdate(
+        userId,
+        { $inc: { "loginVerification.attempts": 1 } },
+        { new: true }
+    );
+};
+
+export const clearLoginVerification = async (userId) => {
     return await User.findByIdAndUpdate(
         userId,
         {
@@ -204,37 +196,11 @@ export const clearLoginVerification = async (
                 lastSentAt: null,
             },
         },
-        {
-            new: true,
-        }
+        { new: true }
     );
 };
 
-/**
- * Increment Login Verification Attempts
- */
-export const incrementLoginVerificationAttempts =
-    async (userId) => {
-        return await User.findByIdAndUpdate(
-            userId,
-            {
-                $inc: {
-                    "loginVerification.attempts": 1,
-                },
-            },
-            {
-                new: true,
-            }
-        );
-    };
-    
-
-export const findUserByEmailForLoginVerification = async (
-    email
-) => {
-    return await User.findOne({ email });
-};    
-
+/* ---------- PASSWORD RESET ---------- */
 
 export const updatePasswordResetData = async (
     userId,
@@ -254,16 +220,12 @@ export const updatePasswordResetData = async (
                 "passwordReset.resetTokenId": resetTokenId,
             },
         },
-        {
-            new: true,
-        }
+        { new: true }
     );
 };
 
-export const findUserByEmailForPasswordReset = async (
-    email
-) => {
-    return await User.findOne({ email });
+export const findUserByEmailForPasswordReset = async (email) => {
+    return await User.findOne({ email: email?.toLowerCase().trim() });
 };
 
 export const clearPasswordResetData = async (userId) => {
@@ -278,39 +240,31 @@ export const clearPasswordResetData = async (userId) => {
                 "passwordReset.resetTokenId": null,
             },
         },
-        {
-            new: true,
-        }
+        { new: true }
     );
 };
 
 export const incrementPasswordResetAttempts = async (userId) => {
     return await User.findByIdAndUpdate(
         userId,
-        {
-            $inc: {
-                "passwordReset.attempts": 1,
-            },
-        },
-        {
-            new: true,
-        }
+        { $inc: { "passwordReset.attempts": 1 } },
+        { new: true }
     );
 };
 
-export const updatePassword = async (
-    userId,
-    hashedPassword
-) => {
+export const updatePassword = async (userId, hashedPassword) => {
     return await User.findByIdAndUpdate(
         userId,
         {
             $set: {
                 password: hashedPassword,
+                lastPasswordChangedAt: new Date(),
             },
+            // Force logout everywhere on password change — closes the
+            // gap where an attacker with a stolen refresh token keeps
+            // sessions alive even after the victim resets their password.
+            refreshTokens: [],
         },
-        {
-            new: true,
-        }
+        { new: true }
     );
 };

@@ -11,8 +11,9 @@ export const protect = (req, res, next) => {
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-
+        console.log("JWT PAYLOAD =>", decoded);
         req.user = decoded;
+
 
         next();
     } catch {

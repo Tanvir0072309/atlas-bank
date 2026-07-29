@@ -1,35 +1,3 @@
-/**
- * ============================================================================
- * RECONSTRUCTED FILE — READ THIS FIRST
- * ============================================================================
- * Your original server/src/services/auth.service.js was NOT present in the
- * upload. Both your client and server projects have a file named
- * `auth.service.js`, and when the project was flattened into a single zip,
- * the client's copy (React/axios/localStorage code) overwrote the server's
- * copy. I rebuilt this file from scratch using:
- *   - auth.controller.js (exact function names/signatures it calls)
- *   - auth.repository.js, user.model.js, jwt.helper.js, bcrypt.helper.js,
- *     token.helper.js, loginVerification.helper.js, email.service.js,
- *     auth.constants.js, security.config.js (all present & unmodified)
- *
- * This directly fixes the three symptoms you reported that lived in this
- * file specifically:
- *   1. Verification/OTP emails are now AWAITED, and a failure is a real,
- *      visible error — registration is rolled back rather than returning
- *      201 while the email silently failed.
- *   2. OTP comparison now normalizes case/whitespace and is scoped to the
- *      submitted email (see loginVerification.helper.js / auth.repository.js
- *      fixes) with a constant-time comparison.
- *   3. Login-attempt lockout (MAX_LOGIN_ATTEMPTS / ACCOUNT_LOCK_TIME from
- *      auth.constants.js) is actually enforced here — it was defined but
- *      unused before.
- *
- * Please review this against your previous business logic/copy — I could
- * not recover your original wording, only your original *behavior* as
- * inferred from the surrounding files.
- * ============================================================================
- */
-
 import * as authRepository from "../repositories/auth.repository.js";
 import { hashPassword, comparePassword } from "../helpers/bcrypt.helper.js";
 import { validatePasswordStrength } from "../helpers/password.helper.js";
@@ -54,7 +22,7 @@ import {
 } from "./email.service.js";
 import { MAX_LOGIN_ATTEMPTS, ACCOUNT_LOCK_TIME } from "../constants/auth.constants.js";
 import { JWT_CONFIG } from "../config/jwt.config.js";
-import ApiError from "../utils/ApiError.js";
+import ApiError from "../utils/apiError.js";
 
 const EMAIL_VERIFICATION_EXPIRES_MS = 24 * 60 * 60 * 1000; // 24h
 const LOGIN_OTP_EXPIRES_MS = 5 * 60 * 1000; // 5 min, matches the email copy

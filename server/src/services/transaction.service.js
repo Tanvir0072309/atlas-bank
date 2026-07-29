@@ -3,21 +3,6 @@ import transactionRepository from "../repositories/transaction.repository.js";
 import walletRepository from "../repositories/wallet.repository.js";
 import { generateTransactionNumber } from "../helpers/transactionNumber.helper.js";
 
-/**
- * FIXED: deposit/withdraw/transfer previously updated wallet balance(s)
- * with separate, non-atomic `.save()` calls, then created the transaction
- * record as a fourth, separate write. If the process crashed or threw
- * between any of those steps (e.g. after debiting the sender but before
- * crediting the receiver), money would be silently lost or duplicated —
- * unacceptable for a banking ledger. Every money-moving operation below
- * now runs inside a single MongoDB session/transaction: either all writes
- * commit together, or none of them do.
- *
- * NOTE: MongoDB transactions require a replica set (MongoDB Atlas is a
- * replica set by default even on the free tier; a bare standalone local
- * `mongod` is not — run `mongod --replSet rs0` and `rs.initiate()` once
- * for local dev, or just point at Atlas).
- */
 class TransactionService {
     // ==========================
     // Deposit
@@ -32,7 +17,10 @@ class TransactionService {
             let transaction;
 
             await session.withTransaction(async () => {
-                const wallet = await walletRepository.findWalletByUserId(userId);
+                const wallet = await walletRepository.findWalletByUserId(
+                    userId,
+                    session
+                );
                 if (!wallet) throw new Error("Wallet not found.");
                 if (wallet.status !== "active") throw new Error("Wallet is not active.");
 
@@ -75,12 +63,10 @@ class TransactionService {
             let transaction;
 
             await session.withTransaction(async () => {
-                // NOTE: for high-concurrency correctness under load, prefer an
-                // atomic conditional update (findOneAndUpdate with a balance
-                // guard) over read-then-save; kept as read/modify/save here
-                // to match the existing codebase's style, but wrapped in a
-                // transaction so it is at least atomic across collections.
-                const wallet = await walletRepository.findWalletByUserId(userId);
+                const wallet = await walletRepository.findWalletByUserId(
+                    userId,
+                    session
+                );
                 if (!wallet) throw new Error("Wallet not found.");
                 if (wallet.status !== "active") throw new Error("Wallet is not active.");
                 if (wallet.availableBalance < amount) throw new Error("Insufficient wallet balance.");
@@ -124,12 +110,16 @@ class TransactionService {
             let transaction;
 
             await session.withTransaction(async () => {
-                const senderWallet = await walletRepository.findWalletByUserId(userId);
+                const senderWallet = await walletRepository.findWalletByUserId(
+                    userId,
+                    session
+                );
                 if (!senderWallet) throw new Error("Sender wallet not found.");
                 if (senderWallet.status !== "active") throw new Error("Sender wallet is not active.");
 
                 const receiverWallet = await walletRepository.findWalletByUpiId(
-                    String(receiverUpiId).toLowerCase().trim()
+                    String(receiverUpiId).toLowerCase().trim(),
+                    session
                 );
                 if (!receiverWallet) throw new Error("Receiver UPI ID not found.");
                 if (receiverWallet.status !== "active") throw new Error("Receiver wallet is not active.");
@@ -150,13 +140,6 @@ class TransactionService {
 
                 const transactionNumber = await generateTransactionNumber();
 
-                // FIX (the core of your request): a single Transaction document
-                // stores BOTH `sender` and `receiver` (and both wallet refs).
-                // findTransactionsByUser() already queries
-                // `$or: [{sender: userId}, {receiver: userId}]`, so this one
-                // record shows up correctly in BOTH parties' transaction
-                // history/statements — no separate "sent" vs "received" rows
-                // to keep in sync.
                 transaction = await transactionRepository.createTransaction(
                     {
                         transactionNumber,

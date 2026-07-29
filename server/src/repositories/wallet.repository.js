@@ -5,11 +5,11 @@ class WalletRepository {
         return await Wallet.create(walletData);
     }
 
-    async findWalletByUserId(userId) {
+    async findWalletByUserId(userId, session = null) {
         return await Wallet.findOne({
             user: userId,
             deletedAt: null,
-        });
+        }).session(session);
     }
 
     async findWalletByWalletNumber(walletNumber) {
@@ -19,11 +19,11 @@ class WalletRepository {
         });
     }
 
-    async findWalletByUpiId(upiId) {
+    async findWalletByUpiId(upiId, session = null) {
         return await Wallet.findOne({
             upiId,
             deletedAt: null,
-        });
+        }).session(session);
     }
 
     async updateWallet(filter, updateData) {

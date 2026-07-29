@@ -16,6 +16,11 @@ const transporter = nodemailer.createTransport({
     socketTimeout: 15000,
 });
 
+console.log("SMTP HOST:", process.env.SMTP_HOST);
+console.log("SMTP PORT:", process.env.SMTP_PORT);
+console.log("SMTP USER:", process.env.SMTP_USER);
+console.log("SMTP FROM:", process.env.SMTP_FROM);
+
 transporter.verify((error, success) => {
     if (error) {
         console.error("❌ SMTP Verify Error:", error);

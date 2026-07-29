@@ -119,7 +119,7 @@ class TransactionService {
     // ==========================
     // Withdraw
     // ==========================
-    async withdraw(user, amount, description = "") {
+    async withdraw(user, amount, description = "", accountId = null) {
         const userId = user?._id || user?.id;
         if (!userId) throw new Error("Authenticated user not found.");
         if (amount <= 0) throw new Error("Amount must be greater than zero.");
@@ -137,21 +137,43 @@ class TransactionService {
                 if (wallet.status !== "active") throw new Error("Wallet is not active.");
                 if (wallet.availableBalance < amount) throw new Error("Insufficient wallet balance.");
 
+                let account = null;
+                if (accountId) {
+                    account = await Account.findOne({
+                        _id: accountId,
+                        user: userId,
+                        deletedAt: null,
+                    }).session(session);
+
+                    if (!account) throw new Error("Bank account not found.");
+                    if (account.status !== "active") {
+                        throw new Error("This bank account is not active.");
+                    }
+                }
+
                 const transactionNumber = await generateTransactionNumber();
 
                 wallet.availableBalance -= amount;
                 await wallet.save({ session });
 
+                if (account) {
+                    account.availableBalance += amount;
+                    await account.save({ session });
+                }
+
                 transaction = await transactionRepository.createTransaction(
                     {
                         transactionNumber,
                         sender: userId,
+                        receiver: account ? userId : null,
                         senderWallet: wallet._id,
+                        receiverAccount: account ? account._id : null,
                         type: "withdraw",
                         amount,
                         currency: wallet.currency,
                         status: "success",
-                        description,
+                        description:
+                            description || (account ? "Withdrawn to bank account" : ""),
                     },
                     session
                 );

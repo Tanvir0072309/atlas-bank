@@ -86,12 +86,13 @@ class TransactionController {
                 });
             }
 
-            const { amount, description } = value;
+            const { amount, description, accountId } = value;
 
             const transaction = await transactionService.withdraw(
                 req.user,
                 amount,
-                description
+                description,
+                accountId
             );
 
             return res.status(200).json({

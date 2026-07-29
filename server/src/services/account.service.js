@@ -1,4 +1,35 @@
 import * as accountRepository from "../repositories/account.repository.js";
+import { decrypt } from "../helpers/encryption.helper.js";
+
+/**
+ * =====================================================
+ * Decrypt the stored account number and replace it with
+ * a masked version (e.g. "•••• 2345") before sending the
+ * account back to the client. The real, decrypted digits
+ * never leave the server.
+ * =====================================================
+ */
+const toSafeAccount = (account) => {
+    if (!account) return account;
+
+    const plain =
+        typeof account.toObject === "function"
+            ? account.toObject()
+            : { ...account };
+
+    if (plain.accountNumber) {
+        try {
+            const decrypted = decrypt(plain.accountNumber);
+            plain.accountNumber = `•••• ${decrypted.slice(-4)}`;
+        } catch {
+            delete plain.accountNumber;
+        }
+    }
+
+    return plain;
+};
+
+const toSafeAccounts = (accounts) => accounts.map(toSafeAccount);
 
 /**
  * =====================================================
@@ -33,7 +64,7 @@ export const createAccount = async (userId, accountData) => {
         account.isPrimary = true;
     }
 
-    return account;
+    return toSafeAccount(account);
 };
 
 /**
@@ -42,7 +73,8 @@ export const createAccount = async (userId, accountData) => {
  * =====================================================
  */
 export const getAccounts = async (userId) => {
-    return await accountRepository.getAccounts(userId);
+    const accounts = await accountRepository.getAccounts(userId);
+    return toSafeAccounts(accounts);
 };
 
 /**
@@ -63,7 +95,7 @@ export const getAccountById = async (
         throw new Error("Bank account not found.");
     }
 
-    return account;
+    return toSafeAccount(account);
 };
 
 /**
@@ -86,7 +118,7 @@ export const updateAccount = async (
         throw new Error("Bank account not found.");
     }
 
-    return account;
+    return toSafeAccount(account);
 };
 
 /**
@@ -107,10 +139,12 @@ export const setPrimaryAccount = async (
         throw new Error("Bank account not found.");
     }
 
-    return await accountRepository.setPrimaryAccount(
+    const updated = await accountRepository.setPrimaryAccount(
         userId,
         accountId
     );
+
+    return toSafeAccount(updated);
 };
 
 /**
@@ -132,23 +166,28 @@ export const deleteAccount = async (
     }
 
     const accounts = await accountRepository.getAccounts(userId);
+    const wasPrimary = account.isPrimary;
 
-    // Prevent deleting the only account
-    if (accounts.length === 1) {
-        throw new Error(
-            "At least one bank account is required."
-        );
-    }
-
-    // Prevent deleting primary account
-    if (account.isPrimary) {
-        throw new Error(
-            "Set another account as primary before deleting this account."
-        );
-    }
-
-    return await accountRepository.deleteAccount(
+    const deleted = await accountRepository.deleteAccount(
         userId,
         accountId
     );
+
+    // If the deleted account was primary and other accounts remain,
+    // automatically promote the next most recent one to primary so the
+    // user is never blocked and always has a clear primary account.
+    if (wasPrimary) {
+        const remaining = accounts.filter(
+            (a) => a._id.toString() !== accountId.toString()
+        );
+
+        if (remaining.length > 0) {
+            await accountRepository.setPrimaryAccount(
+                userId,
+                remaining[0]._id
+            );
+        }
+    }
+
+    return deleted;
 };

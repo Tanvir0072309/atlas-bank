@@ -33,6 +33,17 @@ export const withdrawValidator = Joi.object({
             "any.required": "Amount is required.",
         }),
 
+    // Optional: when provided, the withdrawn amount is credited to this
+    // linked bank account instead of just leaving the wallet.
+    accountId: Joi.string()
+        .hex()
+        .length(24)
+        .optional()
+        .messages({
+            "string.hex": "Invalid bank account id.",
+            "string.length": "Invalid bank account id.",
+        }),
+
     description: Joi.string()
         .trim()
         .max(250)

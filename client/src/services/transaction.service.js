@@ -36,8 +36,8 @@ export const transactionService = {
         return data.data;
     },
 
-    async withdraw({ amount, description }) {
-        const { data } = await api.post("/transactions/withdraw", { amount, description });
+    async withdraw({ amount, description, accountId }) {
+        const { data } = await api.post("/transactions/withdraw", { amount, description, accountId });
         return data.data;
     },
 };

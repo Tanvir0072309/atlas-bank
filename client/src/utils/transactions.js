@@ -6,6 +6,7 @@
 const TYPE_LABELS = {
     deposit: "Deposit",
     withdraw: "Withdrawal",
+    withdraw_to_account: "Wallet to Bank",
     transfer: "UPI Transfer",
     bank_transfer: "Bank to Wallet",
 };
@@ -13,6 +14,7 @@ const TYPE_LABELS = {
 const TYPE_MODES = {
     deposit: "Wallet",
     withdraw: "Wallet",
+    withdraw_to_account: "Bank Transfer",
     transfer: "UPI",
     bank_transfer: "Bank Transfer",
 };
@@ -28,6 +30,11 @@ export function normalizeTransaction(t, currentUserId) {
     const receiverId = idOf(t.receiver);
     const isSender = senderId && String(senderId) === String(currentUserId);
 
+    // A withdraw carrying a receiverAccount is a real "Wallet -> Bank Account"
+    // transfer rather than a generic withdrawal — label it distinctly.
+    const isWithdrawToAccount = t.type === "withdraw" && !!t.receiverAccount;
+    const effectiveType = isWithdrawToAccount ? "withdraw_to_account" : t.type;
+
     // deposit/bank_transfer always land money in the user's own wallet -> credit
     // withdraw always leaves the user's own wallet -> debit
     // transfer: credit if user is receiver, debit if user is sender
@@ -40,6 +47,8 @@ export function normalizeTransaction(t, currentUserId) {
         counterparty = isSender ? t.receiver : t.sender;
     } else if (t.type === "bank_transfer") {
         counterparty = t.senderAccount?.bankName || "Bank Account";
+    } else if (isWithdrawToAccount) {
+        counterparty = t.receiverAccount?.bankName || "Bank Account";
     }
 
     return {
@@ -47,12 +56,13 @@ export function normalizeTransaction(t, currentUserId) {
         raw: t,
         type: direction, // "credit" | "debit"
         txType: t.type, // deposit | withdraw | transfer | bank_transfer
+        effectiveType, // includes the synthetic "withdraw_to_account" split
         desc:
             t.description ||
-            (counterparty?.fullName ? `${TYPE_LABELS[t.type]} · ${counterparty.fullName}` : TYPE_LABELS[t.type]) ||
+            (counterparty?.fullName ? `${TYPE_LABELS[effectiveType]} · ${counterparty.fullName}` : TYPE_LABELS[effectiveType]) ||
             "Transaction",
-        mode: TYPE_MODES[t.type] || "Wallet",
-        category: TYPE_LABELS[t.type] || "Other",
+        mode: TYPE_MODES[effectiveType] || "Wallet",
+        category: TYPE_LABELS[effectiveType] || "Other",
         date: t.createdAt,
         status: t.status,
         amount: t.amount,
@@ -125,6 +135,7 @@ export function getIncomeVsExpense(normalized, months = 6) {
 const CATEGORY_COLORS = {
     Deposit: "#22c55e",
     Withdrawal: "#800A38",
+    "Wallet to Bank": "#f97316",
     "UPI Transfer": "#C4185C",
     "Bank to Wallet": "#0EA5E9",
     Other: "#94a3b8",

@@ -2,7 +2,7 @@ import {
   AreaChart, Area, BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from "recharts";
-import { TrendingUp, TrendingDown, Wallet, PiggyBank, BarChart3 } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, PiggyBank, BarChart3, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
 import PageHeader from "../../components/ui/PageHeader";
 import Card from "../../components/ui/Card";
 import EmptyState from "../../components/ui/EmptyState";
@@ -28,16 +28,26 @@ export default function Analytics() {
 
   const hasData = normalizedTransactions.length > 0;
 
-  const totalSpend = monthlySpending.reduce((s, m) => s + m.amount, 0);
+  // All-time, exact totals — summed straight from every transaction the user
+  // has (not just the last-6-months chart window), so "how much I've spent"
+  // and "how much has come in" are precise, not an approximation.
+  const allTimeSpend = normalizedTransactions
+    .filter((t) => t.type === "debit")
+    .reduce((s, t) => s + t.amount, 0);
+  const allTimeIncome = normalizedTransactions
+    .filter((t) => t.type === "credit")
+    .reduce((s, t) => s + t.amount, 0);
+
   const monthsWithData = monthlySpending.length || 1;
-  const avgSpend = Math.round(totalSpend / monthsWithData);
-  const totalIncome = incomeVsExpense.reduce((s, m) => s + m.income, 0);
-  const savingsRate = totalIncome > 0 ? Math.round(((totalIncome - totalSpend) / totalIncome) * 100) : 0;
+  const avgSpend = Math.round(allTimeSpend / monthsWithData);
+  const savingsRate = allTimeIncome > 0 ? Math.round(((allTimeIncome - allTimeSpend) / allTimeIncome) * 100) : 0;
   const debitCount = normalizedTransactions.filter((t) => t.type === "debit").length;
   const creditCount = normalizedTransactions.filter((t) => t.type === "credit").length;
   const topCategory = categorySpending[0]?.name || "—";
 
   const insights = [
+    { icon: ArrowUpCircle, label: "Total Spent (all-time)", value: formatCurrency(allTimeSpend), tone: "text-[#800A38]", bg: "bg-rose-50" },
+    { icon: ArrowDownCircle, label: "Total Received (all-time)", value: formatCurrency(allTimeIncome), tone: "text-emerald-600", bg: "bg-emerald-50" },
     { icon: TrendingDown, label: "Avg. Monthly Spend", value: formatCurrency(avgSpend), tone: "text-[#800A38]", bg: "bg-rose-50" },
     { icon: TrendingUp, label: "Savings Rate", value: `${savingsRate}%`, tone: "text-emerald-600", bg: "bg-emerald-50" },
     { icon: Wallet, label: "Total Transactions", value: debitCount + creditCount, tone: "text-sky-600", bg: "bg-sky-50" },
@@ -49,10 +59,10 @@ export default function Analytics() {
       <PageHeader title="Analytics" crumb="Analytics" description="Understand your spending patterns and financial health, computed live from your real transaction history." />
 
       {/* Insight cards */}
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-5">
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 mb-5">
         {loading ? (
           <>
-            <SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard />
+            <SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard />
           </>
         ) : (
           insights.map(({ icon: Icon, label, value, tone, bg }) => (

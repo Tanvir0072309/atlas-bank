@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
@@ -6,58 +6,27 @@ import { ArrowUpRight, ArrowDownRight, Send, Wallet, PiggyBank, ShieldCheck } fr
 import Card from "../../components/ui/Card";
 import Badge, { statusTone } from "../../components/ui/Badge";
 import { SkeletonCard, SkeletonRow } from "../../components/ui/Skeleton";
-import { formatCurrency, formatDateTime } from "../../data/mockData";
 import { useAuth } from "../../hooks/useAuth";
-import walletService from "../../services/wallet.service";
-import accountService from "../../services/account.service";
-import transactionService from "../../services/transaction.service";
-import { buildMonthlySpending, buildIncomeVsExpense } from "../../utils/analytics";
-import { useToast } from "../../components/ui/Toast";
-
-const TYPE_META = {
-  deposit: { label: "Bank → Wallet Deposit", direction: "credit" },
-  transfer: { label: "UPI Transfer", direction: "debit" },
-  withdraw: { label: "Wallet → Bank Withdrawal", direction: "debit" },
-};
+import { useBankingData } from "../../hooks/useBankingData";
+import { getMonthlySpending, getIncomeVsExpense, formatCurrency, formatDateTime } from "../../utils/transactions";
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [wallet, setWallet] = useState(null);
-  const [accounts, setAccounts] = useState([]);
-  const [transactions, setTransactions] = useState([]);
+  const { wallet, accounts, normalizedTransactions, loading } = useBankingData();
   const navigate = useNavigate();
-  const toast = useToast();
   const now = new Date();
 
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      try {
-        const [w, accs, txns] = await Promise.all([
-          walletService.getMyWallet().catch(() => null),
-          accountService.getAccounts().catch(() => []),
-          transactionService.getMyTransactions().catch(() => []),
-        ]);
-        setWallet(w);
-        setAccounts(accs);
-        setTransactions(txns);
-      } catch (err) {
-        toast?.showToast(err?.response?.data?.message || "Could not load dashboard data", "error");
-      } finally {
-        setLoading(false);
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const primaryBank = accounts.find((a) => a.isPrimary) || accounts[0] || null;
+
+  // normalizedTransactions already carries the correct credit/debit direction
+  // for the logged-in user (e.g. a UPI transfer is a credit if you received it,
+  // a debit if you sent it) — same logic Analytics uses, so both pages agree.
   const recentTransactions = useMemo(
-    () => [...transactions].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5),
-    [transactions]
+    () => [...normalizedTransactions].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5),
+    [normalizedTransactions]
   );
-  const monthlySpending = useMemo(() => buildMonthlySpending(transactions), [transactions]);
-  const incomeVsExpense = useMemo(() => buildIncomeVsExpense(transactions), [transactions]);
+  const monthlySpending = useMemo(() => getMonthlySpending(normalizedTransactions), [normalizedTransactions]);
+  const incomeVsExpense = useMemo(() => getIncomeVsExpense(normalizedTransactions), [normalizedTransactions]);
 
   const quickActions = [
     { label: "Transfer", icon: Send, onClick: () => navigate("/dashboard/transactions") },
@@ -210,16 +179,15 @@ export default function Dashboard() {
               <p className="py-6 text-sm text-slate-400">No transactions yet. Send money or add funds to get started.</p>
             ) : (
               recentTransactions.map((t) => {
-                const meta = TYPE_META[t.type] || { label: t.type, direction: "debit" };
-                const isCredit = meta.direction === "credit";
+                const isCredit = t.type === "credit";
                 return (
-                  <div key={t._id} className="flex items-center gap-4 py-3.5">
+                  <div key={t.id} className="flex items-center gap-4 py-3.5">
                     <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${isCredit ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-[#800A38]"}`}>
                       {isCredit ? <ArrowDownRight className="h-4.5 w-4.5" /> : <ArrowUpRight className="h-4.5 w-4.5" />}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-slate-800">{t.description || meta.label}</p>
-                      <p className="text-xs text-slate-400">{formatDateTime(t.createdAt)} · {meta.label}</p>
+                      <p className="truncate text-sm font-semibold text-slate-800">{t.desc}</p>
+                      <p className="text-xs text-slate-400">{formatDateTime(t.date)} · {t.category}</p>
                     </div>
                     <p className={`shrink-0 text-sm font-bold ${isCredit ? "text-emerald-600" : "text-slate-800"}`}>
                       {isCredit ? "+" : "−"}{formatCurrency(t.amount)}

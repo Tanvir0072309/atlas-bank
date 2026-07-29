@@ -31,29 +31,13 @@ class WalletService {
     }
 
     async getMyWallet(user) {
-        const userId = user?._id || user?.id || user;
+        const userId = user?._id || user?.id;
 
         if (!userId) {
             throw new Error("Authenticated user not found.");
         }
 
-        const wallet = await walletRepository.findWalletByUserId(userId);
-
-        if (!wallet) {
-            throw new Error("Wallet not found.");
-        }
-
-        return wallet;
-    }
-
-    async getWalletQr(user) {
-        const wallet = await this.getMyWallet(user);
-
-        return {
-            upiId: wallet.upiId,
-            walletNumber: wallet.walletNumber,
-            payload: `upi://pay?pa=${wallet.upiId}&cu=${wallet.currency}`,
-        };
+        return await walletRepository.findWalletByUserId(userId);
     }
 
     async deleteWallet(walletId) {

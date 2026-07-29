@@ -29,13 +29,6 @@ router.post(
     transactionController.transfer
 );
 
-// Bank Account -> Wallet Transfer
-router.post(
-    "/bank-transfer",
-    protect,
-    transactionController.bankTransfer
-);
-
 // Get My Transactions
 router.get(
     "/",

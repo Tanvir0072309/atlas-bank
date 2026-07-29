@@ -1,124 +1,151 @@
-/**
- * AI Financial Assistant — powered by Groq's chat completion API.
- *
- * Uses the built-in `fetch` (Node 18+), so no extra dependency is needed.
- * Set GROQ_API_KEY (and optionally GROQ_MODEL) in server/.env — see the
- * comment in .env.example for details.
- */
+import walletRepository from "../repositories/wallet.repository.js";
+import transactionRepository from "../repositories/transaction.repository.js";
+import * as accountRepository from "../repositories/account.repository.js";
+import { decrypt } from "../helpers/encryption.helper.js";
 
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
-const DEFAULT_MODEL = "llama-3.3-70b-versatile";
-
-const formatCurrency = (amount = 0) =>
-    `₹${Number(amount || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+const GROQ_MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
 
 /**
- * Builds a system prompt that grounds the model in the user's *real*
- * account/wallet/transaction data so answers are personalized instead
- * of generic.
+ * =====================================================
+ * Build a compact, factual snapshot of the logged-in
+ * user's own accounts / wallet / recent transactions.
+ * This ALWAYS comes from the database for the current
+ * req.user only — the model never sees any other user's
+ * data, and the client can never inject this context
+ * itself (it is built here, server-side, from the JWT
+ * identity only).
+ * =====================================================
  */
-export const buildSystemPrompt = ({ user, accounts = [], wallet, transactions = [] }) => {
-    const accountsSummary = accounts.length
-        ? accounts
-            .map(
-                (a) =>
-                    `- ${a.bankName} (${a.accountType}, ${a.isPrimary ? "primary" : "secondary"
-                    }): ${formatCurrency(a.availableBalance)} — status: ${a.status}`
-            )
-            .join("\n")
-        : "No linked bank accounts.";
+async function buildUserFinancialContext(userId) {
+    const [wallet, accounts, transactions] = await Promise.all([
+        walletRepository.findWalletByUserId(userId),
+        accountRepository.getAccounts(userId),
+        transactionRepository.findTransactionsByUser(userId),
+    ]);
 
-    const walletSummary = wallet
-        ? `Wallet balance: ${formatCurrency(wallet.availableBalance)} | UPI ID: ${wallet.upiId} | Status: ${wallet.status}`
-        : "No wallet found for this user.";
+    const recentTransactions = (transactions || [])
+        .slice(0, 20)
+        .map((t) => ({
+            date: t.createdAt,
+            type: t.type,
+            amount: t.amount,
+            currency: t.currency,
+            status: t.status,
+            description: t.description || "",
+        }));
 
-    const recentTxSummary = transactions.length
-        ? transactions
-            .slice(0, 20)
-            .map((t) => {
-                const isSender = String(t.sender?._id || t.sender) === String(user.id);
-                const direction = isSender ? "Debit" : "Credit";
-                const date = new Date(t.createdAt).toLocaleDateString("en-IN");
-                return `- [${date}] ${direction} ${formatCurrency(t.amount)} · ${t.type} · ${t.description || "no note"
-                    } · status: ${t.status}`;
-            })
-            .join("\n")
-        : "No transactions yet.";
-
-    return `You are Atlas AI, the in-app financial assistant for Atlas Bank, a digital bank + wallet product.
-You are talking to ${user.fullName} (${user.email}).
-
-Here is this user's REAL, up-to-date account data. Always base your answers on this data — never invent numbers.
-
-Linked bank accounts:
-${accountsSummary}
-
-Wallet:
-${walletSummary}
-
-Recent transactions (most recent first):
-${recentTxSummary}
-
-Guidelines:
-- Be concise, warm, and specific — reference actual figures from the data above.
-- Help with spending analysis, savings suggestions, budgeting tips, and understanding recent transactions.
-- If asked something you cannot know from this data (e.g. predicting the stock market), say so honestly.
-- Never claim to be able to move money, change account settings, or perform actions — you can only inform and advise.
-- Keep replies short (2-5 sentences) unless the user asks for a detailed breakdown.
-- Format currency in Indian Rupees (₹) using Indian digit grouping.`;
-};
-
-/**
- * @param {Object} params
- * @param {Array<{role: string, content: string}>} params.messages - prior conversation (user/assistant turns only)
- * @param {Object} params.context - { user, accounts, wallet, transactions }
- */
-export const getAiReply = async ({ messages = [], context }) => {
-    const apiKey = process.env.GROQ_API_KEY;
-
-    if (!apiKey) {
-        const err = new Error(
-            "AI assistant is not configured yet. Add GROQ_API_KEY to server/.env and restart the server."
-        );
-        err.statusCode = 503;
-        throw err;
-    }
-
-    const systemPrompt = buildSystemPrompt(context);
-
-    const response = await fetch(GROQ_API_URL, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-            model: process.env.GROQ_MODEL || DEFAULT_MODEL,
-            messages: [{ role: "system", content: systemPrompt }, ...messages],
-            temperature: 0.4,
-            max_tokens: 600,
-        }),
+    const safeAccounts = (accounts || []).map((a) => {
+        let maskedNumber = "N/A";
+        try {
+            const decrypted = decrypt(a.accountNumber);
+            maskedNumber = `••••${String(decrypted).slice(-4)}`;
+        } catch {
+            maskedNumber = "••••";
+        }
+        return {
+            bankName: a.bankName,
+            branchName: a.branchName,
+            accountType: a.accountType,
+            accountNumberMasked: maskedNumber,
+            availableBalance: a.availableBalance,
+            status: a.status,
+            isPrimary: a.isPrimary,
+        };
     });
 
-    if (!response.ok) {
-        const errorBody = await response.text().catch(() => "");
-        const err = new Error(
-            `AI provider error (${response.status}). ${errorBody.slice(0, 300)}`
-        );
-        err.statusCode = 502;
-        throw err;
+    const totalIn = recentTransactions
+        .filter((t) => t.type === "deposit")
+        .reduce((s, t) => s + t.amount, 0);
+    const totalOut = recentTransactions
+        .filter((t) => t.type === "withdraw" || t.type === "transfer")
+        .reduce((s, t) => s + t.amount, 0);
+
+    return {
+        wallet: wallet
+            ? {
+                  walletNumber: wallet.walletNumber,
+                  upiId: wallet.upiId,
+                  availableBalance: wallet.availableBalance,
+                  currency: wallet.currency,
+                  status: wallet.status,
+              }
+            : null,
+        accounts: safeAccounts,
+        recentTransactions,
+        summary: {
+            totalRecentDeposits: totalIn,
+            totalRecentOutflow: totalOut,
+            transactionCount: recentTransactions.length,
+        },
+    };
+}
+
+function buildSystemPrompt(user, context) {
+    return `You are the Atlas Bank AI Financial Assistant, built into the customer's dashboard.
+You are talking ONLY to ${user.fullName} (their own account) — never mention or reason about any other customer.
+Answer using ONLY the JSON data below, which was fetched fresh from the database for this user. Do not invent numbers.
+If the data doesn't contain what's needed to answer, say so plainly instead of guessing.
+Always format money using the currency given (default INR, symbol ₹). Be concise, friendly, and practical.
+
+USER'S CURRENT FINANCIAL DATA (JSON):
+${JSON.stringify(context, null, 2)}`;
+}
+
+class AiService {
+    async chat(user, message, history = []) {
+        const userId = user?._id || user?.id;
+        if (!userId) throw new Error("Authenticated user not found.");
+        if (!message || !message.trim()) throw new Error("Message is required.");
+
+        if (!process.env.GROQ_API_KEY) {
+            throw new Error(
+                "AI assistant is not configured yet. Add GROQ_API_KEY to the server .env file."
+            );
+        }
+
+        const context = await buildUserFinancialContext(userId);
+
+        const messages = [
+            { role: "system", content: buildSystemPrompt(user, context) },
+            // Keep only the last few turns so the request stays small & cheap.
+            ...history.slice(-8).map((m) => ({
+                role: m.role === "user" ? "user" : "assistant",
+                content: String(m.text || m.content || ""),
+            })),
+            { role: "user", content: message },
+        ];
+
+        const response = await fetch(GROQ_API_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+            },
+            body: JSON.stringify({
+                model: GROQ_MODEL,
+                messages,
+                temperature: 0.4,
+                max_tokens: 600,
+            }),
+        });
+
+        if (!response.ok) {
+            const errText = await response.text().catch(() => "");
+            throw new Error(
+                `AI provider error (${response.status}): ${errText || response.statusText}`
+            );
+        }
+
+        const data = await response.json();
+        const reply = data?.choices?.[0]?.message?.content?.trim();
+
+        if (!reply) {
+            throw new Error("AI provider returned an empty response.");
+        }
+
+        return reply;
     }
+}
 
-    const data = await response.json();
-    const reply = data?.choices?.[0]?.message?.content;
-
-    if (!reply) {
-        const err = new Error("AI provider returned an empty response.");
-        err.statusCode = 502;
-        throw err;
-    }
-
-    return reply.trim();
-};
-
-export default { getAiReply, buildSystemPrompt };
+export default new AiService();

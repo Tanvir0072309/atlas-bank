@@ -9,10 +9,12 @@ export default function PublicRoute() {
 
   if (loading) return <PageLoader />;
 
-  // Verify Email page ko redirect mat karo
+  // Verify Email page aur password reset flow ko redirect mat karo
+  // (logged-in users can still reach these — e.g. "Reset Password" from Profile)
+  const alwaysAccessible = ["/verify-email", "/forgot-password", "/verify-reset-code", "/reset-password"];
   if (
     isAuthenticated &&
-    !location.pathname.startsWith("/verify-email")
+    !alwaysAccessible.some((path) => location.pathname.startsWith(path))
   ) {
     return <Navigate to={ROUTES.DASHBOARD} replace />;
   }

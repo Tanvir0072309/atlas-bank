@@ -1,11 +1,11 @@
 import api from "../api/axios";
 
 export const aiService = {
-    // messages: [{ role: "user" | "assistant", content: string }]
-    async chat(messages) {
-        const { data } = await api.post("/ai/chat", { messages });
-        return data.data?.reply || "";
-    },
+  // history: [{ role: "user" | "assistant", text }]
+  async chat(message, history = []) {
+    const { data } = await api.post("/ai/chat", { message, history });
+    return data?.data?.reply;
+  },
 };
 
 export default aiService;

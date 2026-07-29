@@ -1,36 +1,68 @@
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
-import { ArrowUpRight, ArrowDownRight, Send, Wallet, PiggyBank, Bell, ShieldCheck, AlertCircle } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, Send, Wallet, PiggyBank, ShieldCheck } from "lucide-react";
 import Card from "../../components/ui/Card";
 import Badge, { statusTone } from "../../components/ui/Badge";
-import Button from "../../components/ui/Button";
-import EmptyState from "../../components/ui/EmptyState";
 import { SkeletonCard, SkeletonRow } from "../../components/ui/Skeleton";
-import { useBankingData } from "../../hooks/useBankingData";
-import { getMonthlySpending, getIncomeVsExpense, formatCurrency, formatDateTime } from "../../utils/transactions";
-import { NOTIFICATIONS } from "../../data/mockData";
+import { formatCurrency, formatDateTime } from "../../data/mockData";
+import { useAuth } from "../../hooks/useAuth";
+import walletService from "../../services/wallet.service";
+import accountService from "../../services/account.service";
+import transactionService from "../../services/transaction.service";
+import { buildMonthlySpending, buildIncomeVsExpense } from "../../utils/analytics";
+import { useToast } from "../../components/ui/Toast";
+
+const TYPE_META = {
+  deposit: { label: "Bank → Wallet Deposit", direction: "credit" },
+  transfer: { label: "UPI Transfer", direction: "debit" },
+  withdraw: { label: "Wallet → Bank Withdrawal", direction: "debit" },
+};
 
 export default function Dashboard() {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [wallet, setWallet] = useState(null);
+  const [accounts, setAccounts] = useState([]);
+  const [transactions, setTransactions] = useState([]);
   const navigate = useNavigate();
+  const toast = useToast();
   const now = new Date();
-  const {
-    user,
-    wallet,
-    primaryAccount,
-    normalizedTransactions,
-    loading,
-    error,
-  } = useBankingData();
 
-  const monthlySpending = getMonthlySpending(normalizedTransactions);
-  const incomeVsExpense = getIncomeVsExpense(normalizedTransactions);
-  const recent = normalizedTransactions.slice(0, 5);
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      try {
+        const [w, accs, txns] = await Promise.all([
+          walletService.getMyWallet().catch(() => null),
+          accountService.getAccounts().catch(() => []),
+          transactionService.getMyTransactions().catch(() => []),
+        ]);
+        setWallet(w);
+        setAccounts(accs);
+        setTransactions(txns);
+      } catch (err) {
+        toast?.showToast(err?.response?.data?.message || "Could not load dashboard data", "error");
+      } finally {
+        setLoading(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const primaryBank = accounts.find((a) => a.isPrimary) || accounts[0] || null;
+  const recentTransactions = useMemo(
+    () => [...transactions].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5),
+    [transactions]
+  );
+  const monthlySpending = useMemo(() => buildMonthlySpending(transactions), [transactions]);
+  const incomeVsExpense = useMemo(() => buildIncomeVsExpense(transactions), [transactions]);
 
   const quickActions = [
     { label: "Transfer", icon: Send, onClick: () => navigate("/dashboard/transactions") },
-    { label: "Add Money", icon: ArrowDownRight, onClick: () => navigate("/dashboard/transactions") },
-    { label: "Withdraw", icon: ArrowUpRight, onClick: () => navigate("/dashboard/wallet") },
+    { label: "Deposit", icon: ArrowDownRight, onClick: () => navigate("/dashboard/transactions") },
+    { label: "Withdraw", icon: ArrowUpRight, onClick: () => navigate("/dashboard/transfer") },
   ];
 
   return (
@@ -46,13 +78,7 @@ export default function Dashboard() {
         </h1>
       </div>
 
-      {error && (
-        <div className="flex items-center gap-2.5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-700">
-          <AlertCircle className="h-4 w-4 shrink-0" /> {error}
-        </div>
-      )}
-
-      {/* Balance + Linked Account + Quick actions */}
+      {/* Balance + Bank + Quick actions */}
       <div className="grid gap-5 lg:grid-cols-3">
         {loading ? (
           <>
@@ -69,12 +95,8 @@ export default function Dashboard() {
                 <span className="text-xs font-bold uppercase tracking-widest text-rose-200">Wallet Balance</span>
                 <Wallet className="h-5 w-5 text-rose-200" />
               </div>
-              <p className="mt-4 text-2xl sm:text-3xl font-extrabold tracking-tight">
-                {wallet ? formatCurrency(wallet.availableBalance) : "—"}
-              </p>
-              <p className="mt-2 text-xs text-rose-200">
-                {wallet ? `UPI ID · ${wallet.upiId}` : "No wallet found yet"}
-              </p>
+              <p className="mt-4 text-2xl sm:text-3xl font-extrabold tracking-tight">{formatCurrency(wallet?.availableBalance || 0)}</p>
+              <p className="mt-2 text-xs text-rose-200">Available to spend or transfer</p>
               <div className="mt-5 flex items-center gap-2 text-[11px] font-semibold text-emerald-300">
                 <ArrowUpRight className="h-3.5 w-3.5" /> Ready for UPI transfers
               </div>
@@ -86,18 +108,20 @@ export default function Dashboard() {
                   <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Linked Bank Account</span>
                   <PiggyBank className="h-5 w-5 text-[#800A38]" />
                 </div>
-                {primaryAccount ? (
+                {primaryBank ? (
                   <>
-                    <p className="mt-4 text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight truncate">{primaryAccount.bankName}</p>
-                    <p className="mt-2 text-xs text-slate-500 capitalize">{primaryAccount.accountType} · {primaryAccount.branchName}</p>
+                    <p className="mt-4 text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight truncate">{primaryBank.bankName}</p>
+                    <p className="mt-2 text-xs text-slate-500">{primaryBank.branchName} · {primaryBank.accountType}</p>
                     <div className="mt-5">
-                      <Badge tone={primaryAccount.status === "active" ? "success" : "warning"} className="capitalize">{primaryAccount.status}</Badge>
+                      <Badge tone={statusTone(primaryBank.status)}>{primaryBank.status}</Badge>
                     </div>
                   </>
                 ) : (
                   <>
-                    <p className="mt-4 text-sm text-slate-500">No bank account linked yet.</p>
-                    <Button size="sm" variant="outline" className="mt-4" onClick={() => navigate("/dashboard/cards")}>Add Bank Account</Button>
+                    <p className="mt-4 text-sm font-semibold text-slate-500">No bank account linked yet.</p>
+                    <button onClick={() => navigate("/dashboard/cards")} className="mt-4 text-xs font-bold text-[#800A38] hover:underline">
+                      Add a bank account
+                    </button>
                   </>
                 )}
               </Card>
@@ -124,11 +148,11 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Charts — computed live from real transaction history */}
+      {/* Charts */}
       <div className="grid gap-5 lg:grid-cols-2">
         <Card>
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-bold text-slate-900">Monthly Spending</h3>
+            <h3 className="text-sm font-bold text-slate-900">Monthly Outflow</h3>
             <Badge tone="primary">Last 6 months</Badge>
           </div>
           <div className="h-56">
@@ -152,7 +176,7 @@ export default function Dashboard() {
 
         <Card>
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-bold text-slate-900">Income vs Expense</h3>
+            <h3 className="text-sm font-bold text-slate-900">Deposits vs Outflow</h3>
             <Badge tone="primary">Last 6 months</Badge>
           </div>
           <div className="h-56">
@@ -162,15 +186,15 @@ export default function Dashboard() {
                 <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${v / 1000}k`} />
                 <Tooltip formatter={(v) => formatCurrency(v)} contentStyle={{ borderRadius: 12, border: "1px solid #f1d9e2", fontSize: 12 }} />
-                <Bar dataKey="income" fill="#22c55e" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="expense" fill="#C4185C" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="income" name="Deposits" fill="#22c55e" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="expense" name="Outflow" fill="#C4185C" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </Card>
       </div>
 
-      {/* Recent transactions + Notifications + Account status */}
+      {/* Recent transactions + Account status */}
       <div className="grid gap-5 lg:grid-cols-3">
         <Card className="lg:col-span-2" noPadding>
           <div className="flex items-center justify-between p-5 sm:p-6 pb-0">
@@ -182,25 +206,27 @@ export default function Dashboard() {
           <div className="px-5 sm:px-6 mt-2 divide-y divide-rose-50">
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
-            ) : recent.length === 0 ? (
-              <div className="py-6">
-                <EmptyState icon={Wallet} title="No transactions yet" description="Your transfers and payments will show up here." />
-              </div>
+            ) : recentTransactions.length === 0 ? (
+              <p className="py-6 text-sm text-slate-400">No transactions yet. Send money or add funds to get started.</p>
             ) : (
-              recent.map((t) => (
-                <div key={t.id} className="flex items-center gap-4 py-3.5">
-                  <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${t.type === "credit" ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-[#800A38]"}`}>
-                    {t.type === "credit" ? <ArrowDownRight className="h-4.5 w-4.5" /> : <ArrowUpRight className="h-4.5 w-4.5" />}
+              recentTransactions.map((t) => {
+                const meta = TYPE_META[t.type] || { label: t.type, direction: "debit" };
+                const isCredit = meta.direction === "credit";
+                return (
+                  <div key={t._id} className="flex items-center gap-4 py-3.5">
+                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${isCredit ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-[#800A38]"}`}>
+                      {isCredit ? <ArrowDownRight className="h-4.5 w-4.5" /> : <ArrowUpRight className="h-4.5 w-4.5" />}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-slate-800">{t.description || meta.label}</p>
+                      <p className="text-xs text-slate-400">{formatDateTime(t.createdAt)} · {meta.label}</p>
+                    </div>
+                    <p className={`shrink-0 text-sm font-bold ${isCredit ? "text-emerald-600" : "text-slate-800"}`}>
+                      {isCredit ? "+" : "−"}{formatCurrency(t.amount)}
+                    </p>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-slate-800">{t.desc}</p>
-                    <p className="text-xs text-slate-400">{formatDateTime(t.date)} · {t.mode}</p>
-                  </div>
-                  <p className={`shrink-0 text-sm font-bold ${t.type === "credit" ? "text-emerald-600" : "text-slate-800"}`}>
-                    {t.type === "credit" ? "+" : "−"}{formatCurrency(t.amount)}
-                  </p>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
           <div className="h-4" />
@@ -215,39 +241,20 @@ export default function Dashboard() {
             <div className="space-y-2.5">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-slate-500">Wallet</span>
-                <Badge tone={wallet?.status === "active" ? "success" : "warning"} className="capitalize">{wallet?.status || "Not set up"}</Badge>
+                <Badge tone={statusTone(wallet?.status || "active")}>{wallet?.status || "active"}</Badge>
               </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-500">{primaryAccount?.bankName || "Bank Account"}</span>
-                <Badge tone={primaryAccount?.status === "active" ? "success" : "warning"} className="capitalize">{primaryAccount?.status || "Not linked"}</Badge>
-              </div>
+              {primaryBank && (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-500">{primaryBank.bankName}</span>
+                  <Badge tone={statusTone(primaryBank.status)}>{primaryBank.status}</Badge>
+                </div>
+              )}
               <div className="flex items-center justify-between text-xs">
                 <span className="text-slate-500">Email Verification</span>
                 <Badge tone={statusTone(user?.isEmailVerified ? "verified" : "unverified")}>
                   {user?.isEmailVerified ? "Verified" : "Pending"}
                 </Badge>
               </div>
-            </div>
-          </Card>
-
-          <Card noPadding>
-            <div className="flex items-center justify-between p-5 pb-3">
-              <h3 className="text-sm font-bold text-slate-900">Latest Notifications</h3>
-              <Bell className="h-4 w-4 text-slate-400" />
-            </div>
-            <div className="px-5 pb-5 space-y-3">
-              {NOTIFICATIONS.slice(0, 3).map((n) => (
-                <div key={n.id} className="flex items-start gap-2.5">
-                  <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${n.read ? "bg-slate-300" : "bg-[#C4185C]"}`} />
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold text-slate-700 truncate">{n.title}</p>
-                    <p className="text-[11px] text-slate-400 line-clamp-1">{n.message}</p>
-                  </div>
-                </div>
-              ))}
-              <Button variant="ghost" size="sm" className="w-full justify-center mt-1" onClick={() => navigate("/dashboard/notifications")}>
-                View all
-              </Button>
             </div>
           </Card>
         </div>

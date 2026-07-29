@@ -70,10 +70,12 @@ function NavItem({ label, icon: Icon, to, badge, tag, collapsed, onNavigate }) {
       onClick={onNavigate}
       title={collapsed ? label : undefined}
       className={({ isActive }) =>
-        `group relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${collapsed ? "justify-center px-0" : ""
-        } ${isActive
-          ? "bg-[#800A38] text-white shadow-md shadow-[#800A38]/20"
-          : "text-slate-600 hover:bg-rose-50 hover:text-[#800A38]"
+        `group relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
+          collapsed ? "justify-center px-0" : ""
+        } ${
+          isActive
+            ? "bg-[#800A38] text-white shadow-md shadow-[#800A38]/20"
+            : "text-slate-600 hover:bg-rose-50 hover:text-[#800A38]"
         }`
       }
     >
@@ -159,8 +161,9 @@ function SidebarContent({ onNavigate, onLogoutClick, collapsed, onToggleCollapse
       {showCollapseToggle && (
         <button
           onClick={onToggleCollapse}
-          className={`mx-3 mb-2 flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-500 hover:bg-rose-50 hover:text-[#800A38] transition-colors ${collapsed ? "justify-center px-0" : ""
-            }`}
+          className={`mx-3 mb-2 flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-500 hover:bg-rose-50 hover:text-[#800A38] transition-colors ${
+            collapsed ? "justify-center px-0" : ""
+          }`}
         >
           {collapsed ? (
             <ChevronsRight className="h-4 w-4" />
@@ -201,8 +204,9 @@ function SidebarContent({ onNavigate, onLogoutClick, collapsed, onToggleCollapse
         <button
           onClick={onLogoutClick}
           title={collapsed ? "Logout" : undefined}
-          className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors ${collapsed ? "justify-center px-0" : "w-full"
-            }`}
+          className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors ${
+            collapsed ? "justify-center px-0" : "w-full"
+          }`}
         >
           <LogOut className="h-[18px] w-[18px] shrink-0 text-slate-400" />
           {!collapsed && "Logout"}
@@ -217,8 +221,9 @@ export default function Sidebar({ mobileOpen, onMobileClose, onLogoutClick, coll
     <>
       {/* Desktop sidebar */}
       <aside
-        className={`hidden lg:flex fixed inset-y-0 left-0 z-30 flex-col border-r border-rose-100 bg-white transition-[width] duration-200 ${collapsed ? "w-[84px]" : "w-[260px]"
-          }`}
+        className={`hidden lg:flex fixed inset-y-0 left-0 z-30 flex-col border-r border-rose-100 bg-white transition-[width] duration-200 ${
+          collapsed ? "w-[84px]" : "w-[260px]"
+        }`}
       >
         <SidebarContent
           onLogoutClick={onLogoutClick}

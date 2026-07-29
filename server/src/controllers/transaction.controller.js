@@ -3,43 +3,9 @@ import {
     depositValidator,
     withdrawValidator,
     transferValidator,
-    bankTransferValidator,
 } from "../validators/transaction.validator.js";
 
 class TransactionController {
-    // ==========================
-    // Bank Account -> Wallet Transfer
-    // ==========================
-    async bankTransfer(req, res, next) {
-        try {
-            const { error, value } = bankTransferValidator.validate(req.body);
-
-            if (error) {
-                return res.status(400).json({
-                    success: false,
-                    message: error.details[0].message,
-                });
-            }
-
-            const { accountId, amount, description } = value;
-
-            const transaction = await transactionService.bankTransfer(
-                req.user,
-                accountId,
-                amount,
-                description
-            );
-
-            return res.status(201).json({
-                success: true,
-                message: "Money added to wallet successfully.",
-                data: transaction,
-            });
-        } catch (error) {
-            next(error);
-        }
-    }
-
     // ==========================
     // Deposit
     // ==========================
@@ -86,13 +52,12 @@ class TransactionController {
                 });
             }
 
-            const { amount, description, accountId } = value;
+            const { amount, description } = value;
 
             const transaction = await transactionService.withdraw(
                 req.user,
                 amount,
-                description,
-                accountId
+                description
             );
 
             return res.status(200).json({

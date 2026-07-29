@@ -1,17 +1,22 @@
 import { useState } from "react";
-import { ChevronDown, Mail, Phone, MessageCircle, AlertTriangle, LifeBuoy } from "lucide-react";
+import { motion } from "framer-motion";
+import { ChevronDown, Mail, Phone, AlertTriangle, LifeBuoy, Clock, Sparkles, ShieldCheck } from "lucide-react";
 import PageHeader from "../../components/ui/PageHeader";
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
 import Modal from "../../components/ui/Modal";
 import { useToast } from "../../components/ui/Toast";
 
+const SUPPORT_EMAIL = "mrtanvir0072@gmail.com";
+const SUPPORT_PHONE = "9327673402";
+
 const FAQS = [
-  { q: "How do I add money to my wallet?", a: "Go to Transactions → Transfer Money, switch to the \"Bank Account → Wallet\" tab, enter the amount, and confirm. Funds are added instantly." },
-  { q: "How do I send money to someone?", a: "Open Transactions → Transfer Money, enter the receiver's UPI ID and amount, then confirm the transfer. You'll see a live transfer animation while it processes." },
-  { q: "Is my bank account information secure?", a: "Yes. Your bank details are encrypted and only used to move money between your bank account and wallet. You can remove a linked account anytime from the Cards section." },
-  { q: "What do I do if a transaction fails?", a: "Failed transactions are automatically reversed to your wallet or bank account within 24 hours. Check Transaction History for the latest status, or report the issue below." },
-  { q: "How do I verify my email or phone number?", a: "Go to My Profile → Personal Information. If a badge shows \"Pending\", click it to resend a verification link or code." },
+  { q: "How do I add money to my wallet?", a: "Go to Transactions, use the \"Bank Account → Wallet\" form, enter the amount, and confirm. Funds are added instantly." },
+  { q: "How do I send money to someone?", a: "Open Transactions, enter the receiver's UPI ID and amount in the UPI Transfer form, then confirm. You'll see a live transfer animation while it processes." },
+  { q: "Is my bank account information secure?", a: "Yes. Your bank details are encrypted at rest and only used to move money between your bank account and wallet. You can remove a linked account anytime from the Cards section." },
+  { q: "What do I do if a transaction fails?", a: "Failed transactions are automatically reversed to your wallet or bank account. Check Transaction History for the latest status, or report the issue below." },
+  { q: "How do I verify my email?", a: "Go to My Profile → Personal Information. If the Email badge shows \"Not Verified\", click Verify to resend a verification link." },
+  { q: "Is two-factor authentication optional?", a: "No — two-factor authentication is always on for every Atlas Bank account and cannot be disabled, for your security." },
 ];
 
 export default function HelpCenter() {
@@ -28,6 +33,25 @@ export default function HelpCenter() {
   return (
     <div>
       <PageHeader title="Help Center" crumb="Help Center" description="Find answers, contact support, or report an issue." />
+
+      {/* Hero */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#800A38] via-[#6b0830] to-[#5C0526] p-6 sm:p-8 text-white mb-5"
+      >
+        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/5" />
+        <div className="absolute -bottom-16 -left-10 h-48 w-48 rounded-full bg-white/5" />
+        <div className="relative flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-rose-200">
+          <Sparkles className="h-4 w-4" /> We're here to help
+        </div>
+        <h2 className="relative mt-3 text-xl sm:text-2xl font-extrabold tracking-tight">
+          Get support from the Atlas Bank team
+        </h2>
+        <p className="relative mt-2 max-w-xl text-sm text-rose-100">
+          Reach out by email or phone, browse answers to common questions, or report an issue directly — our team responds fast.
+        </p>
+      </motion.div>
 
       <div className="grid gap-5 lg:grid-cols-3">
         {/* FAQs */}
@@ -57,25 +81,25 @@ export default function HelpCenter() {
           <Card>
             <h3 className="mb-4 text-sm font-bold text-slate-900">Contact Support</h3>
             <div className="space-y-3">
-              <a href="mailto:support@atlasbank.com" className="flex items-center gap-3 rounded-2xl border border-rose-100 p-3.5 hover:bg-rose-50/50 transition-colors">
+              <a href={`mailto:${SUPPORT_EMAIL}`} className="flex items-center gap-3 rounded-2xl border border-rose-100 p-3.5 hover:bg-rose-50/50 transition-colors">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 text-[#800A38]"><Mail className="h-4 w-4" /></div>
                 <div className="min-w-0">
                   <p className="text-xs font-bold text-slate-800">Email Us</p>
-                  <p className="truncate text-[11px] text-slate-400">support@atlasbank.com</p>
+                  <p className="truncate text-[11px] text-slate-400">{SUPPORT_EMAIL}</p>
                 </div>
               </a>
-              <a href="tel:18001234567" className="flex items-center gap-3 rounded-2xl border border-rose-100 p-3.5 hover:bg-rose-50/50 transition-colors">
+              <a href={`tel:${SUPPORT_PHONE}`} className="flex items-center gap-3 rounded-2xl border border-rose-100 p-3.5 hover:bg-rose-50/50 transition-colors">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 text-[#800A38]"><Phone className="h-4 w-4" /></div>
                 <div className="min-w-0">
                   <p className="text-xs font-bold text-slate-800">Call Us</p>
-                  <p className="text-[11px] text-slate-400">1800-123-4567 (Toll-free)</p>
+                  <p className="text-[11px] text-slate-400">{SUPPORT_PHONE}</p>
                 </div>
               </a>
-              <div className="flex items-center gap-3 rounded-2xl border border-rose-100 p-3.5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 text-[#800A38]"><MessageCircle className="h-4 w-4" /></div>
+              <div className="flex items-center gap-3 rounded-2xl border border-rose-100 bg-rose-50/40 p-3.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 text-[#800A38]"><Clock className="h-4 w-4" /></div>
                 <div className="min-w-0">
-                  <p className="text-xs font-bold text-slate-800">Live Chat</p>
-                  <p className="text-[11px] text-slate-400">Available 9 AM – 9 PM, all days</p>
+                  <p className="text-xs font-bold text-slate-800">Support Hours</p>
+                  <p className="text-[11px] text-slate-400">9 AM – 9 PM, all days</p>
                 </div>
               </div>
             </div>
@@ -90,6 +114,13 @@ export default function HelpCenter() {
             <Button variant="secondary" size="sm" className="mt-4 w-full" onClick={() => setReportOpen(true)}>
               Report Issue
             </Button>
+          </Card>
+
+          <Card className="flex items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600"><ShieldCheck className="h-4.5 w-4.5" /></div>
+            <p className="text-[11px] leading-relaxed text-slate-500">
+              Atlas Bank support will never ask for your password or OTP over phone or email. Only share account details through this app.
+            </p>
           </Card>
         </div>
       </div>

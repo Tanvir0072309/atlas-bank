@@ -16,6 +16,7 @@ import NotFound from "../pages/NotFound.jsx";
 import DashboardLayout from "../components/dashboard/DashboardLayout.jsx";
 import Dashboard from "../pages/dashboard/Dashboard.jsx";
 import Wallet from "../pages/dashboard/Wallet.jsx";
+import TransferMoney from "../pages/dashboard/TransferMoney.jsx";
 import Transactions from "../pages/dashboard/Transactions.jsx";
 import Cards from "../pages/dashboard/Cards.jsx";
 import AIAssistant from "../pages/dashboard/AIAssistant.jsx";
@@ -50,6 +51,7 @@ export default function AppRoutes() {
         <Route path={ROUTES.DASHBOARD} element={<DashboardLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="wallet" element={<Wallet />} />
+          <Route path="transfer" element={<TransferMoney />} />
           <Route path="transactions" element={<Transactions />} />
           <Route path="cards" element={<Cards />} />
           <Route path="ai-assistant" element={<AIAssistant />} />

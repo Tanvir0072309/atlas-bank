@@ -54,10 +54,14 @@ export const protect = asyncHandler(async (req, res, next) => {
 
     req.user = {
         id: user._id,
+        _id: user._id, // some controllers/services read `_id`, keep both in sync
         email: user.email,
         fullName: user.fullName,
+        phone: user.phone,
         role: user.role,
         status: user.status,
+        isEmailVerified: user.isEmailVerified,
+        isPhoneVerified: user.isPhoneVerified,
     };
 
     next();

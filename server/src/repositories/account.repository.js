@@ -17,10 +17,6 @@ export const createAccount = async (userId, accountData) => {
         bankName: accountData.bankName,
         branchName: accountData.branchName,
         accountType: accountData.accountType,
-        // No separate bank-verification workflow exists yet, so a linked
-        // account must be usable immediately rather than stuck "pending".
-        status: "active",
-        isVerified: true,
     });
 
     return account;
@@ -35,12 +31,10 @@ export const getAccounts = async (userId) => {
     return await Account.find({
         user: userId,
         deletedAt: null,
-    })
-        .select("+accountNumber")
-        .sort({
-            isPrimary: -1,
-            createdAt: -1,
-        });
+    }).sort({
+        isPrimary: -1,
+        createdAt: -1,
+    });
 };
 
 /**
@@ -53,7 +47,7 @@ export const getAccountById = async (userId, accountId) => {
         _id: accountId,
         user: userId,
         deletedAt: null,
-    }).select("+accountNumber");
+    });
 };
 
 /**

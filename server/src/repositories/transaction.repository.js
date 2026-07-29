@@ -25,9 +25,7 @@ class TransactionRepository {
             .populate("sender", "fullName email phone")
             .populate("receiver", "fullName email phone")
             .populate("senderWallet")
-            .populate("receiverWallet")
-            .populate("senderAccount", "bankName accountType branchName")
-            .populate("receiverAccount", "bankName accountType branchName");
+            .populate("receiverWallet");
     }
 
     // ==========================
@@ -54,9 +52,7 @@ class TransactionRepository {
             .populate("sender", "fullName email phone")
             .populate("receiver", "fullName email phone")
             .populate("senderWallet")
-            .populate("receiverWallet")
-            .populate("senderAccount", "bankName accountType branchName")
-            .populate("receiverAccount", "bankName accountType branchName");
+            .populate("receiverWallet");
     }
 
     // ==========================

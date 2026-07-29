@@ -6,6 +6,8 @@ const router = express.Router();
 
 // ==========================================
 // AI Financial Assistant
+// Every route is protected — the assistant only
+// ever sees the currently authenticated user's data.
 // ==========================================
 
 router.post("/chat", protect, aiController.chat);

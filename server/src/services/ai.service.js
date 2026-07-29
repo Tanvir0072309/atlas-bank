@@ -1,20 +1,24 @@
 import walletRepository from "../repositories/wallet.repository.js";
 import transactionRepository from "../repositories/transaction.repository.js";
 import * as accountRepository from "../repositories/account.repository.js";
-import { decrypt } from "../helpers/encryption.helper.js";
 
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+// llama-3.3-70b-versatile was deprecated by Groq — openai/gpt-oss-120b is a
+// current production model. Override with GROQ_MODEL in .env if needed.
+const GROQ_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
 
 /**
  * =====================================================
  * Build a compact, factual snapshot of the logged-in
- * user's own accounts / wallet / recent transactions.
- * This ALWAYS comes from the database for the current
- * req.user only — the model never sees any other user's
- * data, and the client can never inject this context
- * itself (it is built here, server-side, from the JWT
- * identity only).
+ * user's MONEY DATA ONLY — wallet, linked-account balances,
+ * and transactions. This is fetched fresh from the database
+ * for the current req.user only, so the model never sees
+ * any other user's data.
+ *
+ * Deliberately EXCLUDED, by design:
+ *   - profile info (name, email, phone, customer ID, etc.)
+ *   - bank account numbers / IFSC / branch (any account identifiers)
+ * The assistant only ever knows balances and transaction history.
  * =====================================================
  */
 async function buildUserFinancialContext(userId) {
@@ -25,7 +29,7 @@ async function buildUserFinancialContext(userId) {
     ]);
 
     const recentTransactions = (transactions || [])
-        .slice(0, 20)
+        .slice(0, 30)
         .map((t) => ({
             date: t.createdAt,
             type: t.type,
@@ -35,24 +39,14 @@ async function buildUserFinancialContext(userId) {
             description: t.description || "",
         }));
 
-    const safeAccounts = (accounts || []).map((a) => {
-        let maskedNumber = "N/A";
-        try {
-            const decrypted = decrypt(a.accountNumber);
-            maskedNumber = `••••${String(decrypted).slice(-4)}`;
-        } catch {
-            maskedNumber = "••••";
-        }
-        return {
-            bankName: a.bankName,
-            branchName: a.branchName,
-            accountType: a.accountType,
-            accountNumberMasked: maskedNumber,
-            availableBalance: a.availableBalance,
-            status: a.status,
-            isPrimary: a.isPrimary,
-        };
-    });
+    // No account numbers, IFSC, or branch here — balance/type only.
+    const safeAccounts = (accounts || []).map((a) => ({
+        bankName: a.bankName,
+        accountType: a.accountType,
+        availableBalance: a.availableBalance,
+        status: a.status,
+        isPrimary: a.isPrimary,
+    }));
 
     const totalIn = recentTransactions
         .filter((t) => t.type === "deposit")
@@ -64,14 +58,13 @@ async function buildUserFinancialContext(userId) {
     return {
         wallet: wallet
             ? {
-                  walletNumber: wallet.walletNumber,
                   upiId: wallet.upiId,
                   availableBalance: wallet.availableBalance,
                   currency: wallet.currency,
                   status: wallet.status,
               }
             : null,
-        accounts: safeAccounts,
+        linkedBankAccounts: safeAccounts,
         recentTransactions,
         summary: {
             totalRecentDeposits: totalIn,
@@ -81,14 +74,25 @@ async function buildUserFinancialContext(userId) {
     };
 }
 
-function buildSystemPrompt(user, context) {
+function buildSystemPrompt(firstName, context) {
     return `You are the Atlas Bank AI Financial Assistant, built into the customer's dashboard.
-You are talking ONLY to ${user.fullName} (their own account) — never mention or reason about any other customer.
+You are talking to ${firstName}, the currently authenticated customer, about their own money only.
+
+STRICT SCOPE — you have deliberately NOT been given this customer's email, phone, customer ID, or any bank account number/IFSC/branch. You only know their first name, wallet balance, linked-account balances, and transaction history.
+- You may address the customer by their first name (${firstName}).
+- Never invent an account number, email, phone, or any other identity detail — you don't have them.
+- Only discuss their own money data below. If asked something outside this scope (identity details, other customers, anything not in the JSON), say plainly that you don't have access to that information.
+
 Answer using ONLY the JSON data below, which was fetched fresh from the database for this user. Do not invent numbers.
-If the data doesn't contain what's needed to answer, say so plainly instead of guessing.
 Always format money using the currency given (default INR, symbol ₹). Be concise, friendly, and practical.
 
-USER'S CURRENT FINANCIAL DATA (JSON):
+FORMATTING — reply in clean, well-structured markdown so it renders nicely in a chat bubble:
+- Use short paragraphs; **bold** key figures like amounts and balances.
+- Use a bullet or numbered list whenever you give more than one item, step, or tip.
+- Use a small markdown table only when comparing multiple transactions/numbers side by side.
+- Never use a top-level heading (#); at most a bold line as a mini heading. Keep it skimmable, not a wall of text.
+
+CUSTOMER'S FINANCIAL DATA (JSON):
 ${JSON.stringify(context, null, 2)}`;
 }
 
@@ -105,9 +109,10 @@ class AiService {
         }
 
         const context = await buildUserFinancialContext(userId);
+        const firstName = (user.fullName || "there").trim().split(" ")[0];
 
         const messages = [
-            { role: "system", content: buildSystemPrompt(user, context) },
+            { role: "system", content: buildSystemPrompt(firstName, context) },
             // Keep only the last few turns so the request stays small & cheap.
             ...history.slice(-8).map((m) => ({
                 role: m.role === "user" ? "user" : "assistant",

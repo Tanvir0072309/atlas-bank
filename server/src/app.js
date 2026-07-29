@@ -9,6 +9,7 @@ import accountRoutes from "./routes/account.routes.js";
 import walletRoutes from "./routes/wallet.routes.js";
 import transactionRoutes from "./routes/transaction.routes.js";
 import aiRoutes from "./routes/ai.routes.js";
+import errorHandler from "./middlewares/errorHandler.middleware.js";
 
 const app = express();
 
@@ -50,5 +51,13 @@ app.use("/api/v1/accounts", accountRoutes);
 app.use("/api/v1/wallet", walletRoutes);
 app.use("/api/v1/transactions", transactionRoutes);
 app.use("/api/v1/ai", aiRoutes);
+
+// Unknown route -> clean JSON 404 instead of Express's default HTML page
+app.use((req, res) => {
+    res.status(404).json({ success: false, message: `Route not found: ${req.originalUrl}` });
+});
+
+// Must be the last middleware — catches every next(error) from every route above
+app.use(errorHandler);
 
 export default app;

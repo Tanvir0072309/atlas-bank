@@ -1,11 +1,58 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Sparkles, Send, Bot, User, TrendingDown, PieChart, PiggyBank, Lightbulb, Activity } from "lucide-react";
 import PageHeader from "../../components/ui/PageHeader";
 import Card from "../../components/ui/Card";
 import Badge from "../../components/ui/Badge";
 import aiService from "../../services/ai.service";
 import { useAuth } from "../../hooks/useAuth";
+
+// Renders the assistant's markdown reply with chat-bubble-friendly styling
+// (tight spacing, small headings, bold amounts, tidy lists/tables).
+function MarkdownMessage({ text }) {
+  return (
+    <div className="markdown-message text-sm leading-relaxed">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+          strong: ({ children }) => <strong className="font-bold text-slate-900">{children}</strong>,
+          em: ({ children }) => <em className="italic">{children}</em>,
+          ul: ({ children }) => <ul className="mb-2 ml-4 list-disc space-y-1 last:mb-0">{children}</ul>,
+          ol: ({ children }) => <ol className="mb-2 ml-4 list-decimal space-y-1 last:mb-0">{children}</ol>,
+          li: ({ children }) => <li className="pl-0.5">{children}</li>,
+          h1: ({ children }) => <h3 className="mb-1.5 mt-1 text-sm font-extrabold text-slate-900">{children}</h3>,
+          h2: ({ children }) => <h3 className="mb-1.5 mt-1 text-sm font-extrabold text-slate-900">{children}</h3>,
+          h3: ({ children }) => <h4 className="mb-1 mt-1 text-xs font-extrabold uppercase tracking-wide text-slate-500">{children}</h4>,
+          a: ({ children, href }) => (
+            <a href={href} target="_blank" rel="noreferrer" className="font-semibold text-[#800A38] underline underline-offset-2">
+              {children}
+            </a>
+          ),
+          code: ({ children }) => (
+            <code className="rounded bg-black/5 px-1.5 py-0.5 font-mono text-[11px] text-[#800A38]">{children}</code>
+          ),
+          hr: () => <hr className="my-2.5 border-slate-200" />,
+          blockquote: ({ children }) => (
+            <blockquote className="mb-2 border-l-2 border-[#800A38]/30 pl-3 text-slate-500 italic">{children}</blockquote>
+          ),
+          table: ({ children }) => (
+            <div className="mb-2 overflow-x-auto rounded-lg border border-slate-200">
+              <table className="w-full text-xs">{children}</table>
+            </div>
+          ),
+          thead: ({ children }) => <thead className="bg-slate-50">{children}</thead>,
+          th: ({ children }) => <th className="px-2.5 py-1.5 text-left font-bold text-slate-600">{children}</th>,
+          td: ({ children }) => <td className="border-t border-slate-100 px-2.5 py-1.5">{children}</td>,
+        }}
+      >
+        {text}
+      </ReactMarkdown>
+    </div>
+  );
+}
 
 const SUGGESTIONS = [
   { label: "How much did I spend this month?", icon: TrendingDown },
@@ -74,8 +121,8 @@ export default function AIAssistant() {
                 <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${m.role === "user" ? "bg-[#800A38] text-white" : "bg-rose-50 text-[#800A38]"}`}>
                   {m.role === "user" ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
                 </div>
-                <div className={`max-w-[75%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${m.role === "user" ? "bg-[#800A38] text-white rounded-tr-sm" : "bg-slate-100 text-slate-700 rounded-tl-sm"}`}>
-                  {m.text}
+                <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${m.role === "user" ? "bg-[#800A38] text-white rounded-tr-sm text-sm leading-relaxed whitespace-pre-wrap" : "bg-slate-100 text-slate-700 rounded-tl-sm"}`}>
+                  {m.role === "user" ? m.text : <MarkdownMessage text={m.text} />}
                 </div>
               </motion.div>
             ))}

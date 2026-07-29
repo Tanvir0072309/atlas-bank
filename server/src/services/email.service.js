@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+console.log("========== EMAIL SERVICE LOADED ==========");
 
 const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,

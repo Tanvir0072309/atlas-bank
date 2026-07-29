@@ -113,6 +113,51 @@ export function getMonthlySpending(normalized, months = 6) {
     return buckets.map((b) => ({ month: b.label, amount: Math.round(map[b.key]) }));
 }
 
+// Start-of-week (Monday) for a given date, at midnight.
+function startOfWeek(date) {
+    const d = new Date(date);
+    const day = d.getDay(); // 0 = Sunday
+    const diff = (day === 0 ? -6 : 1) - day; // shift back to Monday
+    d.setDate(d.getDate() + diff);
+    d.setHours(0, 0, 0, 0);
+    return d;
+}
+
+function weekKey(date) {
+    return startOfWeek(date).getTime();
+}
+
+function weekLabel(date) {
+    const start = startOfWeek(date);
+    return start.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+}
+
+// Builds the last `count` week buckets (oldest -> newest) ending this week,
+// so the chart axis stays stable even with zero-activity weeks.
+function lastWeeks(count = 8) {
+    const weeks = [];
+    const now = new Date();
+    for (let i = count - 1; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i * 7);
+        weeks.push({ key: weekKey(d), label: weekLabel(d) });
+    }
+    return weeks;
+}
+
+export function getWeeklySpending(normalized, weeks = 8) {
+    const buckets = lastWeeks(weeks);
+    const map = Object.fromEntries(buckets.map((b) => [b.key, 0]));
+
+    normalized.forEach((t) => {
+        if (t.type !== "debit") return;
+        const key = weekKey(t.date);
+        if (key in map) map[key] += t.amount;
+    });
+
+    return buckets.map((b) => ({ week: b.label, amount: Math.round(map[b.key]) }));
+}
+
 export function getIncomeVsExpense(normalized, months = 6) {
     const buckets = lastMonths(months);
     const incomeMap = Object.fromEntries(buckets.map((b) => [b.key, 0]));

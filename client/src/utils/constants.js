@@ -3,7 +3,7 @@ export const BANK_NAME = "Atlas";
 export const BANK_TAGLINE = "Banking that moves as fast as you do.";
 
 
-export const API_BASE_URL = "http://localhost:5000/api/v1";
+export const API_BASE_URL = "https://atlas-bank-chqy.onrender.com";
 
 // LocalStorage Keys for Authentication
 export const STORAGE_KEYS = {

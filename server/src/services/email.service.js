@@ -1,53 +1,58 @@
-import nodemailer from "nodemailer";
-console.log("========== EMAIL SERVICE LOADED ==========");
+import * as Brevo from "@getbrevo/brevo";
 
-const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT),
-    secure: false,
-    requireTLS: true,
+console.log("========== EMAIL SERVICE LOADED (BREVO API) ==========");
 
-    auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-    },
+// Initialize Brevo API Instance
+const apiInstance = new Brevo.TransactionalEmailsApi();
 
-    connectionTimeout: 15000, // 15 seconds
-    greetingTimeout: 15000,
-    socketTimeout: 15000,
-});
+// Set API key authorization
+const apiKey = process.env.BREVO_API_KEY;
+if (!apiKey) {
+    console.warn("⚠️ BREVO_API_KEY is missing from environment variables.");
+} else {
+    apiInstance.setApiKey(
+        Brevo.TransactionalEmailsApiApiKeys.apiKey,
+        apiKey
+    );
+}
 
-console.log("SMTP HOST:", process.env.SMTP_HOST);
-console.log("SMTP PORT:", process.env.SMTP_PORT);
-console.log("SMTP USER:", process.env.SMTP_USER);
-console.log("SMTP FROM:", process.env.SMTP_FROM);
-
-transporter.verify((error, success) => {
-    if (error) {
-        console.error("❌ SMTP Verify Error:", error);
-    } else {
-        console.log("✅ SMTP Server Ready");
-    }
-});
+console.log("BREVO SENDER:", process.env.SMTP_FROM || "Atlas Bank <no-reply@atlasbank.com>");
 
 /**
- * Send Email
+ * Parses "Name <email@domain.com>" or "email@domain.com" into Brevo's expected format.
+ */
+const parseSender = (senderString) => {
+    const defaultSender = { name: "Atlas Bank", email: "no-reply@atlasbank.com" };
+
+    if (!senderString) return defaultSender;
+
+    const match = senderString.match(/^(?:"?([^"]*)"?\s)?(?:<(.+)>|(.+))$/);
+    if (!match) return defaultSender;
+
+    const name = match[1]?.trim() || "Atlas Bank";
+    const email = (match[2] || match[3])?.trim() || "no-reply@atlasbank.com";
+
+    return { name, email };
+};
+
+/**
+ * Send Email via Brevo HTTPS REST API
  */
 export const sendEmail = async ({ to, subject, html }) => {
     try {
-        const info = await transporter.sendMail({
-            from:
-                process.env.SMTP_FROM ||
-                '"Atlas Bank" <no-reply@atlasbank.com>',
-            to,
-            subject,
-            html,
-        });
+        const sender = parseSender(process.env.SMTP_FROM);
 
-        console.log("✅ Email Sent:", info);
-        return info;
+        const sendSmtpEmail = new Brevo.SendSmtpEmail();
+        sendSmtpEmail.subject = subject;
+        sendSmtpEmail.htmlContent = html;
+        sendSmtpEmail.sender = sender;
+        sendSmtpEmail.to = [{ email: to }];
+
+        const data = await apiInstance.sendTransacEmail(sendSmtpEmail);
+        console.log("✅ Email Sent via Brevo API:", data.body);
+        return data.body;
     } catch (error) {
-        console.error("❌ Email Error:", error);
+        console.error("❌ Brevo Email Error:", error.response?.body || error.message || error);
         throw error;
     }
 };

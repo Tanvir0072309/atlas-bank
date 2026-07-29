@@ -4,10 +4,24 @@ const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT),
     secure: false,
+    requireTLS: true,
+
     auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
     },
+
+    connectionTimeout: 15000, // 15 seconds
+    greetingTimeout: 15000,
+    socketTimeout: 15000,
+});
+
+transporter.verify((error, success) => {
+    if (error) {
+        console.error("❌ SMTP Verify Error:", error);
+    } else {
+        console.log("✅ SMTP Server Ready");
+    }
 });
 
 /**

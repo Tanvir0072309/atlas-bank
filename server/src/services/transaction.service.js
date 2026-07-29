@@ -1,9 +1,75 @@
 import mongoose from "mongoose";
 import transactionRepository from "../repositories/transaction.repository.js";
 import walletRepository from "../repositories/wallet.repository.js";
+import Account from "../models/account.model.js";
 import { generateTransactionNumber } from "../helpers/transactionNumber.helper.js";
 
 class TransactionService {
+    // ==========================
+    // Bank Account -> Wallet Transfer
+    // ==========================
+    async bankTransfer(user, accountId, amount, description = "") {
+        const userId = user?._id || user?.id;
+        if (!userId) throw new Error("Authenticated user not found.");
+        if (amount <= 0) throw new Error("Amount must be greater than zero.");
+
+        const session = await mongoose.startSession();
+        try {
+            let transaction;
+
+            await session.withTransaction(async () => {
+                const account = await Account.findOne({
+                    _id: accountId,
+                    user: userId,
+                    deletedAt: null,
+                }).session(session);
+
+                if (!account) throw new Error("Bank account not found.");
+                if (account.status !== "active") {
+                    throw new Error("This bank account is not active.");
+                }
+                if (account.availableBalance < amount) {
+                    throw new Error("Insufficient bank account balance.");
+                }
+
+                const wallet = await walletRepository.findWalletByUserId(
+                    userId,
+                    session
+                );
+                if (!wallet) throw new Error("Wallet not found.");
+                if (wallet.status !== "active") throw new Error("Wallet is not active.");
+
+                account.availableBalance -= amount;
+                wallet.availableBalance += amount;
+
+                await account.save({ session });
+                await wallet.save({ session });
+
+                const transactionNumber = await generateTransactionNumber();
+
+                transaction = await transactionRepository.createTransaction(
+                    {
+                        transactionNumber,
+                        sender: userId,
+                        receiver: userId,
+                        senderAccount: account._id,
+                        receiverWallet: wallet._id,
+                        type: "bank_transfer",
+                        amount,
+                        currency: wallet.currency,
+                        status: "success",
+                        description: description || "Added from Bank",
+                    },
+                    session
+                );
+            });
+
+            return transaction;
+        } finally {
+            session.endSession();
+        }
+    }
+
     // ==========================
     // Deposit
     // ==========================

@@ -18,7 +18,7 @@ class WalletController {
 
     async getMyWallet(req, res, next) {
         try {
-            const wallet = await walletService.getMyWallet(req.user._id);
+            const wallet = await walletService.getMyWallet(req.user);
 
             return res.status(200).json({
                 success: true,
@@ -31,7 +31,7 @@ class WalletController {
 
     async getWalletQr(req, res, next) {
         try {
-            const qrCode = await walletService.getWalletQr(req.user._id);
+            const qrCode = await walletService.getWalletQr(req.user);
 
             return res.status(200).json({
                 success: true,

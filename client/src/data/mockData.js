@@ -3,20 +3,56 @@
 // every page only reads from here, so swapping to `fetch`/React Query later
 // means touching this file, not the pages.
 
+// Maps 1:1 to the user document shape returned by the backend
+// (id, fullName, email, phone, isEmailVerified, isPhoneVerified, status, lastLogin, createdAt).
 export const CUSTOMER = {
-  id: "CUST-108452",
-  name: "Aditi Sharma",
-  email: "aditi.sharma@example.com",
-  mobile: "+91 98765 43210",
-  address: "402, Willow Residency, Satellite, Ahmedabad, Gujarat 380015",
-  dob: "1994-03-12",
+  id: "6a68a4271477f4c9d6c58973",
+  name: "Tanvir Khan",
+  email: "mrtanvir0072@gmail.com",
+  mobile: "+91 98765 43220",
+  isEmailVerified: true,
+  isPhoneVerified: false,
+  role: "customer",
+  status: "active",
+  lastLogin: "2026-07-28T13:09:00.015Z",
+  memberSince: "2026-07-28T12:44:23.455Z",
   photo: null, // fallback to initials avatar if null
   kyc: "Verified",
-  aadhaar: "Verified",
-  pan: "Verified",
-  twoFactorEnabled: true,
-  memberSince: "2019-06-01",
+  twoFactorEnabled: false,
 };
+
+// Wallet — the primary balance shown across the dashboard.
+export const WALLET = {
+  id: "6a6962c612040208bbb00cec",
+  balance: 1000,
+  currency: "INR",
+};
+
+// Linked bank account(s) — shown as "cards" on the Cards page, and used as the
+// source when moving money from a bank account into the wallet.
+export const BANK_ACCOUNTS = [
+  {
+    id: "bank_1",
+    accountHolderName: "Tanvir Khan",
+    accountNumber: "456789012345",
+    ifscCode: "UTIB0007890",
+    bankName: "Axis Bank",
+    branchName: "Vadodara",
+    accountType: "savings",
+    isPrimary: true,
+  },
+];
+
+// The user's own receivable UPI handle, used for the "Transfer Money" flow.
+export const MY_UPI_ID = "mrtanvir0072663544@atlas";
+
+// Wallet ledger — mirrors the backend transaction schema
+// (transactionNumber, sender, receiver, type, amount, currency, status, description, createdAt).
+export const WALLET_TRANSACTIONS = [
+  { _id: "6a696fd07f48e93c9e44fe11", transactionNumber: "TXN000003", sender: null, receiver: "6a68a8b11477f4c9d6c58979", type: "deposit", amount: 1000, currency: "INR", status: "success", description: "Initial Deposit", createdAt: "2026-07-29T03:13:20.399Z" },
+  { _id: "6a696fd07f48e93c9e44fe0a", transactionNumber: "TXN000002", sender: "6a68a8b11477f4c9d6c58979", receiver: "rec_upi_1", type: "transfer", amount: 250, currency: "INR", status: "success", description: "Money Transfer", createdAt: "2026-07-28T18:42:10.000Z" },
+  { _id: "6a696fd07f48e93c9e44fe09", transactionNumber: "TXN000001", sender: "bank_1", receiver: "6a68a8b11477f4c9d6c58979", type: "bank_transfer", amount: 2000, currency: "INR", status: "success", description: "Added money from Axis Bank", createdAt: "2026-07-27T09:05:44.000Z" },
+];
 
 export const ACCOUNTS = [
   {

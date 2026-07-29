@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
+import { Menu } from "lucide-react";
 import Sidebar from "./Sidebar";
-import Topbar from "./Topbar";
 import LogoutModal from "./LogoutModal";
 import { useToast } from "../ui/Toast";
 
@@ -31,10 +31,18 @@ export default function DashboardLayout() {
         onToggleCollapse={() => setCollapsed((c) => !c)}
       />
 
-      <div className={`transition-[padding] duration-200 ${collapsed ? "lg:pl-[84px]" : "lg:pl-[260px]"}`}>
-        <Topbar onMenuClick={() => setMobileOpen(true)} onLogoutClick={() => setLogoutOpen(true)} />
+      {/* Mobile-only menu button — the top bar was removed, so this is the
+          only way to reach the sidebar on small screens. */}
+      <button
+        onClick={() => setMobileOpen(true)}
+        className="fixed left-4 top-4 z-20 flex h-10 w-10 items-center justify-center rounded-xl border border-rose-100 bg-white text-slate-500 shadow-sm hover:bg-rose-50 hover:text-[#800A38] lg:hidden"
+        aria-label="Open menu"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
 
-        <main className="px-4 py-6 sm:px-6 sm:py-8 max-w-[1400px] mx-auto">
+      <div className={`transition-[padding] duration-200 ${collapsed ? "lg:pl-[84px]" : "lg:pl-[260px]"}`}>
+        <main className="px-4 pb-6 pt-16 sm:px-6 sm:pb-8 sm:pt-8 max-w-[1400px] mx-auto">
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}

@@ -2,7 +2,6 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import PublicRoute from "./PublicRoute.jsx";
 import ProtectedRoute from "./ProtectedRoute.jsx";
 import AuthRouteLayout from "../layouts/AuthLayout.jsx";
-import MainLayout from "../layouts/MainLayout.jsx";
 
 import Welcome from "../pages/Welcome.jsx";
 import Register from "../pages/Register.jsx";
@@ -16,14 +15,15 @@ import NotFound from "../pages/NotFound.jsx";
 // Dashboard shell + pages
 import DashboardLayout from "../components/dashboard/DashboardLayout.jsx";
 import Dashboard from "../pages/dashboard/Dashboard.jsx";
-import MyAccounts from "../pages/dashboard/MyAccounts.jsx";
+import Wallet from "../pages/dashboard/Wallet.jsx";
 import TransferMoney from "../pages/dashboard/TransferMoney.jsx";
-import Beneficiaries from "../pages/dashboard/Beneficiaries.jsx";
 import Transactions from "../pages/dashboard/Transactions.jsx";
+import Cards from "../pages/dashboard/Cards.jsx";
+import AIAssistant from "../pages/dashboard/AIAssistant.jsx";
 import Analytics from "../pages/dashboard/Analytics.jsx";
 import Notifications from "../pages/dashboard/Notifications.jsx";
 import Profile from "../pages/dashboard/Profile.jsx";
-import Settings from "../pages/dashboard/Settings.jsx";
+import HelpCenter from "../pages/dashboard/HelpCenter.jsx";
 
 import { ROUTES } from "../utils/constants";
 
@@ -50,14 +50,15 @@ export default function AppRoutes() {
         {/* Dashboard shell — sidebar + topbar wrap every nested page below */}
         <Route path={ROUTES.DASHBOARD} element={<DashboardLayout />}>
           <Route index element={<Dashboard />} />
-          <Route path="accounts" element={<MyAccounts />} />
+          <Route path="wallet" element={<Wallet />} />
           <Route path="transfer" element={<TransferMoney />} />
-          <Route path="beneficiaries" element={<Beneficiaries />} />
           <Route path="transactions" element={<Transactions />} />
+          <Route path="cards" element={<Cards />} />
+          <Route path="ai-assistant" element={<AIAssistant />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="profile" element={<Profile />} />
-          <Route path="settings" element={<Settings />} />
+          <Route path="help" element={<HelpCenter />} />
         </Route>
       </Route>
 

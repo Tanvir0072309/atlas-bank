@@ -2,21 +2,24 @@ import { NavLink } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
-  CreditCard,
-  Send,
-  Users,
+  Wallet as WalletIcon,
   Receipt,
+  CreditCard,
+  Sparkles,
   BarChart3,
   Bell,
   User,
-  Settings,
+  LifeBuoy,
   LogOut,
   X,
   ChevronsLeft,
   ChevronsRight,
   ShieldCheck,
 } from "lucide-react";
-import { CUSTOMER, NOTIFICATIONS } from "../../data/mockData";
+import { NOTIFICATIONS } from "../../data/mockData";
+import { useAuth } from "../../hooks/useAuth";
+import { BANK_NAME } from "../../utils/constants";
+import logo from "../../assets/logo.png";
 
 // Grouped so the sidebar reads as sections instead of one long flat list.
 const MENU_GROUPS = [
@@ -27,19 +30,24 @@ const MENU_GROUPS = [
   {
     label: "Banking",
     items: [
-      { label: "My Accounts", icon: CreditCard, to: "/dashboard/accounts" },
-      { label: "Transfer Money", icon: Send, to: "/dashboard/transfer" },
-      { label: "Beneficiaries", icon: Users, to: "/dashboard/beneficiaries" },
+      { label: "Wallet", icon: WalletIcon, to: "/dashboard/wallet" },
       { label: "Transactions", icon: Receipt, to: "/dashboard/transactions" },
+      { label: "Cards", icon: CreditCard, to: "/dashboard/cards", tag: "Future" },
+    ],
+  },
+  {
+    label: "Insights",
+    items: [
+      { label: "AI Financial Assistant", icon: Sparkles, to: "/dashboard/ai-assistant" },
       { label: "Analytics", icon: BarChart3, to: "/dashboard/analytics" },
     ],
   },
   {
     label: "Account",
     items: [
+      { label: "My Profile", icon: User, to: "/dashboard/profile" },
       { label: "Notifications", icon: Bell, to: "/dashboard/notifications", badgeKey: "unread" },
-      { label: "Profile", icon: User, to: "/dashboard/profile" },
-      { label: "Settings", icon: Settings, to: "/dashboard/settings" },
+      { label: "Help Center", icon: LifeBuoy, to: "/dashboard/help" },
     ],
   },
 ];
@@ -54,7 +62,7 @@ function initials(name = "") {
     .toUpperCase();
 }
 
-function NavItem({ label, icon: Icon, to, badge, collapsed, onNavigate }) {
+function NavItem({ label, icon: Icon, to, badge, tag, collapsed, onNavigate }) {
   return (
     <NavLink
       to={to}
@@ -62,12 +70,10 @@ function NavItem({ label, icon: Icon, to, badge, collapsed, onNavigate }) {
       onClick={onNavigate}
       title={collapsed ? label : undefined}
       className={({ isActive }) =>
-        `group relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
-          collapsed ? "justify-center px-0" : ""
-        } ${
-          isActive
-            ? "bg-[#800A38] text-white shadow-md shadow-[#800A38]/20"
-            : "text-slate-600 hover:bg-rose-50 hover:text-[#800A38]"
+        `group relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${collapsed ? "justify-center px-0" : ""
+        } ${isActive
+          ? "bg-[#800A38] text-white shadow-md shadow-[#800A38]/20"
+          : "text-slate-600 hover:bg-rose-50 hover:text-[#800A38]"
         }`
       }
     >
@@ -82,6 +88,11 @@ function NavItem({ label, icon: Icon, to, badge, collapsed, onNavigate }) {
             )}
           </span>
           {!collapsed && <span className="truncate">{label}</span>}
+          {!collapsed && tag && (
+            <span className={`ml-auto shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-400"}`}>
+              {tag}
+            </span>
+          )}
           {!collapsed && badge > 0 && (
             <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#C4185C]/15 px-1.5 text-[10px] font-bold text-[#C4185C]">
               {badge > 9 ? "9+" : badge}
@@ -100,18 +111,21 @@ function NavItem({ label, icon: Icon, to, badge, collapsed, onNavigate }) {
 }
 
 function SidebarContent({ onNavigate, onLogoutClick, collapsed, onToggleCollapse, showCollapseToggle }) {
+  const { user } = useAuth();
   const unread = NOTIFICATIONS.filter((n) => !n.read).length;
+  const displayName = user?.fullName || "You";
+  const verified = Boolean(user?.isEmailVerified);
 
   return (
     <div className="flex h-full flex-col">
       {/* Brand */}
       <div className={`flex items-center gap-3 px-6 py-6 ${collapsed ? "justify-center px-0" : ""}`}>
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-[#800A38] to-[#C4185C] shadow-md shadow-[#800A38]/20">
-          <span className="text-base font-extrabold text-white">A</span>
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-md shadow-[#800A38]/10 border border-rose-100 overflow-hidden">
+          <img src={logo} alt={BANK_NAME} className="h-7 w-7 object-contain" />
         </div>
         {!collapsed && (
           <div className="flex flex-col leading-none">
-            <span className="text-lg font-extrabold tracking-tight text-[#800A38]">Atlas Bank</span>
+            <span className="text-lg font-extrabold tracking-tight text-[#800A38]">{BANK_NAME} Bank</span>
             <span className="mt-1 text-[9px] font-bold uppercase tracking-widest text-slate-400">Customer Portal</span>
           </div>
         )}
@@ -145,9 +159,8 @@ function SidebarContent({ onNavigate, onLogoutClick, collapsed, onToggleCollapse
       {showCollapseToggle && (
         <button
           onClick={onToggleCollapse}
-          className={`mx-3 mb-2 flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-500 hover:bg-rose-50 hover:text-[#800A38] transition-colors ${
-            collapsed ? "justify-center px-0" : ""
-          }`}
+          className={`mx-3 mb-2 flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-500 hover:bg-rose-50 hover:text-[#800A38] transition-colors ${collapsed ? "justify-center px-0" : ""
+            }`}
         >
           {collapsed ? (
             <ChevronsRight className="h-4 w-4" />
@@ -165,18 +178,18 @@ function SidebarContent({ onNavigate, onLogoutClick, collapsed, onToggleCollapse
         <NavLink
           to="/dashboard/profile"
           onClick={onNavigate}
-          title={collapsed ? CUSTOMER.name : undefined}
+          title={collapsed ? displayName : undefined}
           className={`flex items-center gap-3 ${collapsed ? "justify-center" : ""}`}
         >
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-[#800A38] to-[#C4185C] text-xs font-bold text-white">
-            {initials(CUSTOMER.name)}
+            {initials(displayName)}
           </div>
           {!collapsed && (
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-slate-700">{CUSTOMER.name}</p>
+              <p className="truncate text-sm font-semibold text-slate-700">{displayName}</p>
               <p className="flex items-center gap-1 truncate text-[11px] text-slate-400">
-                <ShieldCheck className="h-3 w-3 text-emerald-500" />
-                KYC {CUSTOMER.kyc}
+                <ShieldCheck className={`h-3 w-3 ${verified ? "text-emerald-500" : "text-amber-500"}`} />
+                {verified ? "Verification complete" : "Verification pending"}
               </p>
             </div>
           )}
@@ -188,9 +201,8 @@ function SidebarContent({ onNavigate, onLogoutClick, collapsed, onToggleCollapse
         <button
           onClick={onLogoutClick}
           title={collapsed ? "Logout" : undefined}
-          className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors ${
-            collapsed ? "justify-center px-0" : "w-full"
-          }`}
+          className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors ${collapsed ? "justify-center px-0" : "w-full"
+            }`}
         >
           <LogOut className="h-[18px] w-[18px] shrink-0 text-slate-400" />
           {!collapsed && "Logout"}
@@ -205,9 +217,8 @@ export default function Sidebar({ mobileOpen, onMobileClose, onLogoutClick, coll
     <>
       {/* Desktop sidebar */}
       <aside
-        className={`hidden lg:flex fixed inset-y-0 left-0 z-30 flex-col border-r border-rose-100 bg-white transition-[width] duration-200 ${
-          collapsed ? "w-[84px]" : "w-[260px]"
-        }`}
+        className={`hidden lg:flex fixed inset-y-0 left-0 z-30 flex-col border-r border-rose-100 bg-white transition-[width] duration-200 ${collapsed ? "w-[84px]" : "w-[260px]"
+          }`}
       >
         <SidebarContent
           onLogoutClick={onLogoutClick}

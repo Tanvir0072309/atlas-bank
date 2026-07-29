@@ -8,6 +8,8 @@ import authRoutes from "./routes/auth.routes.js";
 import accountRoutes from "./routes/account.routes.js";
 import walletRoutes from "./routes/wallet.routes.js";
 import transactionRoutes from "./routes/transaction.routes.js";
+import aiRoutes from "./routes/ai.routes.js";
+import { errorHandler, notFoundHandler } from "./middlewares/error.middleware.js";
 
 const app = express();
 
@@ -48,5 +50,12 @@ app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/accounts", accountRoutes);
 app.use("/api/v1/wallet", walletRoutes);
 app.use("/api/v1/transactions", transactionRoutes);
+app.use("/api/v1/ai", aiRoutes);
+
+// ==============================
+// 404 + Error Handling (must be last)
+// ==============================
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 export default app;

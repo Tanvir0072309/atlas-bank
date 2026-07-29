@@ -33,12 +33,27 @@ const transactionSchema = new mongoose.Schema(
             default: null,
         },
 
+        // Bank account involved when moving money between a linked
+        // bank account and the wallet (Bank → Wallet transfer).
+        senderAccount: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Account",
+            default: null,
+        },
+
+        receiverAccount: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Account",
+            default: null,
+        },
+
         type: {
             type: String,
             enum: [
                 "deposit",
                 "withdraw",
                 "transfer",
+                "bank_transfer",
             ],
             required: true,
         },

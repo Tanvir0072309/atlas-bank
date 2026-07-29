@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Menu, Search, Bell, ChevronDown, User, Settings, LogOut } from "lucide-react";
+import { Menu, Search, Bell, ChevronDown, User, LogOut } from "lucide-react";
 import { CUSTOMER, NOTIFICATIONS } from "../../data/mockData";
 
 export default function Topbar({ onMenuClick, onLogoutClick }) {
@@ -110,12 +110,6 @@ export default function Topbar({ onMenuClick, onLogoutClick }) {
                 className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-rose-50 hover:text-[#800A38]"
               >
                 <User className="h-4 w-4" /> My Profile
-              </button>
-              <button
-                onClick={() => { setProfileOpen(false); navigate("/dashboard/settings"); }}
-                className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-rose-50 hover:text-[#800A38]"
-              >
-                <Settings className="h-4 w-4" /> Settings
               </button>
               <button
                 onClick={() => { setProfileOpen(false); onLogoutClick(); }}

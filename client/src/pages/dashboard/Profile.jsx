@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Camera, ShieldCheck, KeyRound, Smartphone, Pencil } from "lucide-react";
+import { Camera, ShieldCheck, ShieldAlert, KeyRound, Smartphone, Mail, Pencil } from "lucide-react";
 import PageHeader from "../../components/ui/PageHeader";
 import Card from "../../components/ui/Card";
 import Badge from "../../components/ui/Badge";
@@ -22,9 +22,13 @@ export default function Profile() {
     toast?.showToast("Password updated successfully", "success");
   };
 
+  const resendVerification = (kind) => {
+    toast?.showToast(`Verification ${kind === "email" ? "email" : "SMS"} sent`, "success");
+  };
+
   return (
     <div>
-      <PageHeader title="Profile" crumb="Profile" description="Manage your personal information and account security." />
+      <PageHeader title="My Profile" crumb="Profile" description="Manage your personal information and account security." />
 
       <div className="grid gap-5 lg:grid-cols-3">
         {/* Profile card */}
@@ -38,10 +42,11 @@ export default function Profile() {
             </button>
           </div>
           <h2 className="mt-4 text-lg font-extrabold text-slate-900">{CUSTOMER.name}</h2>
-          <p className="text-xs text-slate-400">Customer ID: {CUSTOMER.id}</p>
+          <p className="text-xs text-slate-400 break-all">Customer ID: {CUSTOMER.id}</p>
           <p className="mt-1 text-xs text-slate-400">Member since {formatDate(CUSTOMER.memberSince)}</p>
-          <div className="mt-4 flex justify-center">
-            <Badge tone="success"><ShieldCheck className="h-3 w-3" /> KYC {CUSTOMER.kyc}</Badge>
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            <Badge tone="success"><ShieldCheck className="h-3 w-3" /> {CUSTOMER.status}</Badge>
+            <Badge tone="primary" className="capitalize">{CUSTOMER.role}</Badge>
           </div>
           <Button variant="secondary" size="sm" icon={Pencil} className="mt-5 w-full" onClick={() => setEditOpen(true)}>
             Edit Profile
@@ -55,31 +60,51 @@ export default function Profile() {
             {[
               ["Full Name", CUSTOMER.name],
               ["Email Address", CUSTOMER.email],
-              ["Mobile Number", CUSTOMER.mobile],
-              ["Date of Birth", formatDate(CUSTOMER.dob)],
-              ["Address", CUSTOMER.address],
+              ["Phone Number", CUSTOMER.mobile],
+              ["Last Login", new Date(CUSTOMER.lastLogin).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })],
             ].map(([label, value]) => (
-              <div key={label} className={label === "Address" ? "sm:col-span-2" : ""}>
+              <div key={label}>
                 <dt className="text-xs font-bold uppercase tracking-wide text-slate-400">{label}</dt>
-                <dd className="mt-1 text-sm font-semibold text-slate-800">{value}</dd>
+                <dd className="mt-1 text-sm font-semibold text-slate-800 break-all">{value}</dd>
               </div>
             ))}
           </dl>
 
           <div className="mt-6 grid gap-3 sm:grid-cols-2 border-t border-rose-100 pt-5">
+            {/* Email verification status */}
             <div className="flex items-center justify-between rounded-2xl bg-rose-50/50 border border-rose-100 p-4">
-              <div>
-                <p className="text-xs font-bold text-slate-500 uppercase">Aadhaar</p>
-                <p className="text-sm font-semibold text-slate-800 mt-0.5">Linked & Verified</p>
+              <div className="flex items-center gap-3">
+                <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${CUSTOMER.isEmailVerified ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"}`}>
+                  <Mail className="h-4.5 w-4.5" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-slate-500 uppercase">Email</p>
+                  <p className="text-sm font-semibold text-slate-800 mt-0.5">{CUSTOMER.isEmailVerified ? "Verified" : "Not Verified"}</p>
+                </div>
               </div>
-              <Badge tone="success">{CUSTOMER.aadhaar}</Badge>
+              {CUSTOMER.isEmailVerified ? (
+                <Badge tone="success">Verified</Badge>
+              ) : (
+                <Button size="sm" variant="outline" onClick={() => resendVerification("email")}>Verify</Button>
+              )}
             </div>
+
+            {/* Phone verification status */}
             <div className="flex items-center justify-between rounded-2xl bg-rose-50/50 border border-rose-100 p-4">
-              <div>
-                <p className="text-xs font-bold text-slate-500 uppercase">PAN</p>
-                <p className="text-sm font-semibold text-slate-800 mt-0.5">Linked & Verified</p>
+              <div className="flex items-center gap-3">
+                <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${CUSTOMER.isPhoneVerified ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"}`}>
+                  <Smartphone className="h-4.5 w-4.5" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-slate-500 uppercase">Phone</p>
+                  <p className="text-sm font-semibold text-slate-800 mt-0.5">{CUSTOMER.isPhoneVerified ? "Verified" : "Not Verified"}</p>
+                </div>
               </div>
-              <Badge tone="success">{CUSTOMER.pan}</Badge>
+              {CUSTOMER.isPhoneVerified ? (
+                <Badge tone="success">Verified</Badge>
+              ) : (
+                <Button size="sm" variant="outline" onClick={() => resendVerification("phone")}>Verify</Button>
+              )}
             </div>
           </div>
         </Card>
@@ -93,7 +118,7 @@ export default function Profile() {
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 text-[#800A38]"><KeyRound className="h-5 w-5" /></div>
                 <div>
                   <p className="text-sm font-bold text-slate-800">Password</p>
-                  <p className="text-xs text-slate-400">Last changed 42 days ago</p>
+                  <p className="text-xs text-slate-400">Keep your account secure with a strong password</p>
                 </div>
               </div>
               <Button size="sm" variant="outline" onClick={() => setPwOpen(true)}>Change</Button>
@@ -101,7 +126,7 @@ export default function Profile() {
 
             <div className="flex items-center justify-between rounded-2xl border border-rose-100 p-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 text-[#800A38]"><Smartphone className="h-5 w-5" /></div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 text-[#800A38]"><ShieldAlert className="h-5 w-5" /></div>
                 <div>
                   <p className="text-sm font-bold text-slate-800">Two-Factor Authentication</p>
                   <p className="text-xs text-slate-400">{twoFA ? "Enabled via authenticator app" : "Currently disabled"}</p>
@@ -140,8 +165,7 @@ export default function Profile() {
           {[
             ["Full Name", CUSTOMER.name],
             ["Email Address", CUSTOMER.email],
-            ["Mobile Number", CUSTOMER.mobile],
-            ["Address", CUSTOMER.address],
+            ["Phone Number", CUSTOMER.mobile],
           ].map(([label, value]) => (
             <label key={label} className="block">
               <span className="mb-1.5 block text-xs font-bold text-slate-500 uppercase tracking-wide">{label}</span>

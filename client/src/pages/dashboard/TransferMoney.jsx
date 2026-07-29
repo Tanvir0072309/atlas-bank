@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Landmark, ArrowRight, CheckCircle2, User, Building2 } from "lucide-react";
 import PageHeader from "../../components/ui/PageHeader";
@@ -7,11 +7,8 @@ import Button from "../../components/ui/Button";
 import Modal from "../../components/ui/Modal";
 import Badge from "../../components/ui/Badge";
 import logo from "../../assets/logo.png";
-import { formatCurrency, formatDateTime } from "../../data/mockData";
+import { BANK_ACCOUNTS, WALLET, WALLET_TRANSACTIONS, formatCurrency, formatDateTime } from "../../data/mockData";
 import { useToast } from "../../components/ui/Toast";
-import walletService from "../../services/wallet.service";
-import accountService from "../../services/account.service";
-import transactionService from "../../services/transaction.service";
 
 const TABS = [
   { id: "upi", label: "Transfer Money (UPI)", icon: Send },
@@ -26,38 +23,21 @@ export default function TransferMoney() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [successOpen, setSuccessOpen] = useState(false);
-  const [error, setError] = useState("");
   const toast = useToast();
 
-  const [wallet, setWallet] = useState(null);
-  const [primaryBank, setPrimaryBank] = useState(null);
-  const [recentTransfers, setRecentTransfers] = useState([]);
-
-  const loadData = async () => {
-    try {
-      const [w, accounts, txns] = await Promise.all([
-        walletService.getMyWallet().catch(() => null),
-        accountService.getAccounts().catch(() => []),
-        transactionService.getMyTransactions().catch(() => []),
-      ]);
-      setWallet(w);
-      setPrimaryBank(accounts.find((a) => a.isPrimary) || accounts[0] || null);
-      setRecentTransfers(
-        [...txns].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5)
-      );
-    } catch {
-      // handled individually above
-    }
-  };
-
-  useEffect(() => {
-    loadData();
-  }, []);
+  const primaryBank = BANK_ACCOUNTS[0];
+  const recentTransfers = useMemo(
+    () => [...WALLET_TRANSACTIONS].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5),
+    []
+  );
 
   const canSubmit =
     amount &&
     Number(amount) > 0 &&
     (tab === "upi" ? receiverUpiId.trim().length > 3 : true);
+
+  // Exact payload shape the backend expects for a UPI transfer.
+  // const payload = { receiverUpiId, amount: Number(amount) || 0, description };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -65,30 +45,15 @@ export default function TransferMoney() {
     setConfirmOpen(true);
   };
 
-  const confirmTransfer = async () => {
+  const confirmTransfer = () => {
     setConfirmOpen(false);
     setSending(true);
-    setError("");
-    try {
-      if (tab === "upi") {
-        await transactionService.transferUpi({
-          receiverUpiId: receiverUpiId.trim(),
-          amount,
-          description,
-        });
-      } else {
-        await transactionService.depositFromBank({ amount, description });
-      }
+    // Simulated network delay so the send animation has time to play.
+    setTimeout(() => {
       setSending(false);
       setSuccessOpen(true);
       toast?.showToast(`${formatCurrency(Number(amount))} transferred successfully`, "success");
-      loadData();
-    } catch (err) {
-      setSending(false);
-      const msg = err?.response?.data?.message || "Transfer failed. Please try again.";
-      setError(msg);
-      toast?.showToast(msg, "error");
-    }
+    }, 2200);
   };
 
   const resetForm = () => {
@@ -159,7 +124,7 @@ export default function TransferMoney() {
 
               <div className="rounded-2xl border border-rose-100 bg-rose-50/40 p-4 text-xs text-slate-500">
                 <p className="font-bold text-slate-600 mb-1">Paying from</p>
-                <p>Atlas Wallet · Available balance {wallet ? formatCurrency(wallet.availableBalance) : "—"}</p>
+                <p>Atlas Wallet · Available balance {formatCurrency(WALLET.balance)}</p>
               </div>
 
               <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={!canSubmit} icon={ArrowRight} iconPosition="right">
@@ -170,14 +135,8 @@ export default function TransferMoney() {
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="rounded-2xl border border-rose-100 bg-rose-50/40 p-4">
                 <p className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-1">From Bank Account</p>
-                {primaryBank ? (
-                  <>
-                    <p className="text-sm font-extrabold text-slate-900">{primaryBank.bankName}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">{primaryBank.branchName}</p>
-                  </>
-                ) : (
-                  <p className="text-sm text-slate-500">No linked bank account found. Add one from the Cards page.</p>
-                )}
+                <p className="text-sm font-extrabold text-slate-900">{primaryBank.bankName}</p>
+                <p className="text-xs text-slate-500 mt-0.5">•••• {primaryBank.accountNumber.slice(-4)} · {primaryBank.branchName}</p>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
@@ -207,20 +166,16 @@ export default function TransferMoney() {
               </Button>
             </form>
           )}
-          {error && <p className="mt-3 text-xs font-semibold text-red-600">{error}</p>}
         </Card>
 
         {/* Recent transfers */}
         <Card noPadding>
           <h3 className="p-5 pb-3 text-sm font-bold text-slate-900">Recent Transfers</h3>
           <div className="px-5 pb-5 divide-y divide-rose-50">
-            {recentTransfers.length === 0 && (
-              <p className="py-4 text-xs text-slate-400">No transfers yet.</p>
-            )}
             {recentTransfers.map((t) => (
               <div key={t._id} className="flex items-center justify-between py-3">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-slate-800">{t.description || t.type}</p>
+                  <p className="truncate text-sm font-semibold text-slate-800">{t.description}</p>
                   <p className="text-[11px] text-slate-400">{formatDateTime(t.createdAt)}</p>
                 </div>
                 <p className="shrink-0 text-sm font-bold text-slate-800">{formatCurrency(t.amount)}</p>
@@ -248,7 +203,7 @@ export default function TransferMoney() {
           {tab === "upi" ? (
             <Row label="Receiver UPI ID" value={receiverUpiId || "—"} />
           ) : (
-            <Row label="From" value={primaryBank ? primaryBank.bankName : "—"} />
+            <Row label="From" value={`${primaryBank.bankName} •••• ${primaryBank.accountNumber.slice(-4)}`} />
           )}
           {description && <Row label="Description" value={description} />}
         </div>
@@ -316,7 +271,7 @@ export default function TransferMoney() {
           <CheckCircle2 className="h-14 w-14 text-emerald-500 mb-4" />
           <p className="text-xl sm:text-2xl font-extrabold text-slate-900">{formatCurrency(Number(amount) || 0)}</p>
           <p className="mt-1 text-sm text-slate-500">has been transferred successfully.</p>
-          <Badge tone="success" className="mt-3">Reference ID: {recentTransfers[0]?.transactionNumber || "—"}</Badge>
+          <Badge tone="success" className="mt-3">Reference ID: TXN{Math.floor(Math.random() * 900000 + 100000)}</Badge>
         </div>
       </Modal>
 

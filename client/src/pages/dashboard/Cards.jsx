@@ -1,140 +1,101 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { PlusCircle, Trash2, Copy, Landmark, ShieldCheck, Wifi } from "lucide-react";
+import { PlusCircle, Trash2, Star, Landmark, AlertCircle } from "lucide-react";
 import PageHeader from "../../components/ui/PageHeader";
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
 import Modal from "../../components/ui/Modal";
+import Badge, { statusTone } from "../../components/ui/Badge";
 import EmptyState from "../../components/ui/EmptyState";
-import { BANK_ACCOUNTS as INITIAL_ACCOUNTS } from "../../data/mockData";
+import { SkeletonCard } from "../../components/ui/Skeleton";
+import accountService from "../../services/account.service";
 import { useToast } from "../../components/ui/Toast";
 
 const GRADIENTS = [
   "from-[#800A38] via-[#6b0830] to-[#5C0526]",
   "from-[#1e293b] via-[#0f172a] to-[#020617]",
   "from-[#C4185C] via-[#9c1148] to-[#5C0526]",
+  "from-[#0f766e] via-[#115e59] to-[#022c22]",
 ];
 
-function maskAccountNumber(number) {
-  const clean = number.replace(/\s/g, "");
-  return clean.replace(/.(?=.{4})/g, "•").replace(/(.{4})/g, "$1 ").trim();
-}
-
-function BankCard({ account, index, onDelete }) {
-  const [flipped, setFlipped] = useState(false);
-  const toast = useToast();
-
-  const copyDetails = (e) => {
-    e.stopPropagation();
-    navigator.clipboard?.writeText(account.accountNumber);
-    toast?.showToast("Account number copied", "success");
-  };
-
-  return (
-    <div className="[perspective:1200px]">
-      <motion.div
-        onClick={() => setFlipped((f) => !f)}
-        className="relative h-52 w-full cursor-pointer [transform-style:preserve-3d] transition-transform duration-500"
-        style={{ transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)" }}
-      >
-        {/* Front */}
-        <div
-          className={`absolute inset-0 flex flex-col justify-between rounded-3xl bg-gradient-to-br ${GRADIENTS[index % GRADIENTS.length]} p-5 text-white shadow-xl shadow-black/20 [backface-visibility:hidden]`}
-        >
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-white/60">Atlas Linked Account</p>
-              <p className="mt-1 text-sm font-extrabold">{account.bankName}</p>
-            </div>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15">
-              <Landmark className="h-4.5 w-4.5" />
-            </div>
-          </div>
-
-          <div>
-            <p className="text-lg font-semibold tracking-[0.15em]">{maskAccountNumber(account.accountNumber)}</p>
-            <div className="mt-3 flex items-end justify-between">
-              <div>
-                <p className="text-[9px] uppercase tracking-widest text-white/50">Account Holder</p>
-                <p className="text-sm font-bold">{account.accountHolderName}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-[9px] uppercase tracking-widest text-white/50">Type</p>
-                <p className="text-sm font-bold capitalize">{account.accountType}</p>
-              </div>
-              <Wifi className="h-5 w-5 rotate-90 text-white/70" />
-            </div>
-          </div>
-        </div>
-
-        {/* Back */}
-        <div
-          className={`absolute inset-0 flex flex-col justify-between rounded-3xl bg-gradient-to-br ${GRADIENTS[index % GRADIENTS.length]} p-5 text-white shadow-xl shadow-black/20 [backface-visibility:hidden]`}
-          style={{ transform: "rotateY(180deg)" }}
-        >
-          <div className="h-9 w-full rounded bg-black/40 mt-1" />
-          <div className="space-y-1.5 text-xs">
-            <div className="flex justify-between"><span className="text-white/60">IFSC Code</span><span className="font-bold">{account.ifscCode}</span></div>
-            <div className="flex justify-between"><span className="text-white/60">Branch</span><span className="font-bold">{account.branchName}</span></div>
-            <div className="flex justify-between"><span className="text-white/60">Full A/C No.</span><span className="font-bold">{account.accountNumber}</span></div>
-          </div>
-          <p className="text-[9px] text-white/50">Tap card to flip back</p>
-        </div>
-      </motion.div>
-
-      {/* Action buttons under the card */}
-      <div className="mt-3 grid grid-cols-3 gap-2">
-        <button
-          onClick={copyDetails}
-          className="flex items-center justify-center gap-1.5 rounded-xl border border-rose-100 bg-white py-2 text-[11px] font-bold text-slate-600 hover:bg-rose-50 hover:text-[#800A38] transition-colors"
-        >
-          <Copy className="h-3.5 w-3.5" /> Copy
-        </button>
-        <button
-          onClick={(e) => { e.stopPropagation(); setFlipped((f) => !f); }}
-          className="flex items-center justify-center gap-1.5 rounded-xl border border-rose-100 bg-white py-2 text-[11px] font-bold text-slate-600 hover:bg-rose-50 hover:text-[#800A38] transition-colors"
-        >
-          <ShieldCheck className="h-3.5 w-3.5" /> Flip
-        </button>
-        <button
-          onClick={(e) => { e.stopPropagation(); onDelete(account.id); }}
-          className="flex items-center justify-center gap-1.5 rounded-xl border border-red-100 bg-white py-2 text-[11px] font-bold text-red-500 hover:bg-red-50 transition-colors"
-        >
-          <Trash2 className="h-3.5 w-3.5" /> Delete
-        </button>
-      </div>
-    </div>
-  );
-}
+const emptyForm = {
+  accountHolderName: "",
+  accountNumber: "",
+  ifscCode: "",
+  bankName: "",
+  branchName: "",
+  accountType: "savings",
+};
 
 export default function Cards() {
-  const [accounts, setAccounts] = useState(INITIAL_ACCOUNTS);
+  const [accounts, setAccounts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [addOpen, setAddOpen] = useState(false);
-  const [deleteId, setDeleteId] = useState(null);
-  const [form, setForm] = useState({
-    accountHolderName: "",
-    accountNumber: "",
-    ifscCode: "",
-    bankName: "",
-    branchName: "",
-    accountType: "savings",
-  });
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [form, setForm] = useState(emptyForm);
   const toast = useToast();
+
+  const loadAccounts = async () => {
+    setLoading(true);
+    try {
+      const data = await accountService.getAccounts();
+      setAccounts(data);
+    } catch (err) {
+      toast?.showToast(err?.response?.data?.message || "Could not load bank accounts.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAccounts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const updateField = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
-  const handleAdd = (e) => {
+  const handleAdd = async (e) => {
     e.preventDefault();
-    setAccounts((prev) => [...prev, { id: `bank_${Date.now()}`, ...form }]);
-    toast?.showToast("Bank account added successfully", "success");
-    setAddOpen(false);
-    setForm({ accountHolderName: "", accountNumber: "", ifscCode: "", bankName: "", branchName: "", accountType: "savings" });
+    setFormError("");
+    setSaving(true);
+    try {
+      await accountService.createAccount(form);
+      toast?.showToast("Bank account added successfully", "success");
+      setAddOpen(false);
+      setForm(emptyForm);
+      await loadAccounts();
+    } catch (err) {
+      setFormError(err?.response?.data?.message || "Could not add this bank account.");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const confirmDelete = () => {
-    setAccounts((prev) => prev.filter((a) => a.id !== deleteId));
-    toast?.showToast("Bank account removed", "success");
-    setDeleteId(null);
+  const confirmDelete = async () => {
+    setDeleting(true);
+    try {
+      await accountService.deleteAccount(deleteTarget._id);
+      toast?.showToast("Bank account removed", "success");
+      setDeleteTarget(null);
+      await loadAccounts();
+    } catch (err) {
+      toast?.showToast(err?.response?.data?.message || "Could not remove this account.", "error");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const makePrimary = async (account) => {
+    try {
+      await accountService.setPrimaryAccount(account._id);
+      toast?.showToast(`${account.bankName} set as primary account`, "success");
+      await loadAccounts();
+    } catch (err) {
+      toast?.showToast(err?.response?.data?.message || "Could not update primary account.", "error");
+    }
   };
 
   return (
@@ -143,10 +104,18 @@ export default function Cards() {
         title="Cards"
         crumb="Cards"
         description="Manage the bank accounts linked to your Atlas wallet."
-        action={<Button icon={PlusCircle} onClick={() => setAddOpen(true)}>Add Bank Account</Button>}
+        action={
+          <Button icon={PlusCircle} onClick={() => { setForm(emptyForm); setFormError(""); setAddOpen(true); }}>
+            Add Bank Account
+          </Button>
+        }
       />
 
-      {accounts.length === 0 ? (
+      {loading ? (
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <SkeletonCard /><SkeletonCard /><SkeletonCard />
+        </div>
+      ) : accounts.length === 0 ? (
         <Card>
           <EmptyState
             icon={Landmark}
@@ -160,12 +129,56 @@ export default function Cards() {
           <AnimatePresence>
             {accounts.map((account, i) => (
               <motion.div
-                key={account.id}
+                key={account._id}
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
+                className={`relative flex flex-col justify-between rounded-3xl bg-gradient-to-br ${GRADIENTS[i % GRADIENTS.length]} p-5 text-white shadow-xl shadow-black/20 min-h-[190px]`}
               >
-                <BankCard account={account} index={i} onDelete={setDeleteId} />
+                {account.isPrimary && (
+                  <span className="absolute right-4 top-4 flex items-center gap-1 rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">
+                    <Star className="h-3 w-3 fill-current" /> Primary
+                  </span>
+                )}
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-white/60">Atlas Linked Account</p>
+                  <p className="mt-1 text-base font-extrabold">{account.bankName}</p>
+                  <p className="mt-0.5 text-xs text-white/70">{account.accountHolderName}</p>
+                </div>
+
+                <div>
+                  <p className="text-lg font-semibold tracking-[0.15em]">
+                    {account.accountNumber || "•••• ••••"}
+                  </p>
+                  <div className="mt-2 flex items-center justify-between text-[11px] text-white/70">
+                    <span>{account.ifscCode}</span>
+                    <span className="capitalize">{account.accountType}</span>
+                  </div>
+                  <div className="mt-1 text-[11px] text-white/70">{account.branchName}</div>
+                </div>
+
+                <div className="mt-3 flex items-center justify-between">
+                  <Badge tone={statusTone(account.status)} className="capitalize">{account.status}</Badge>
+                  <span className="text-sm font-bold">
+                    ₹{Number(account.availableBalance || 0).toLocaleString("en-IN")}
+                  </span>
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button
+                    disabled={account.isPrimary}
+                    onClick={() => makePrimary(account)}
+                    className="rounded-xl bg-white/10 py-2 text-[11px] font-bold hover:bg-white/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Make Primary
+                  </button>
+                  <button
+                    onClick={() => setDeleteTarget(account)}
+                    className="flex items-center justify-center gap-1.5 rounded-xl bg-white/10 py-2 text-[11px] font-bold text-white hover:bg-red-500/80 transition-colors"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> Delete
+                  </button>
+                </div>
               </motion.div>
             ))}
           </AnimatePresence>
@@ -175,15 +188,20 @@ export default function Cards() {
       {/* Add bank account modal */}
       <Modal open={addOpen} onClose={() => setAddOpen(false)} title="Add Bank Account">
         <form onSubmit={handleAdd} className="space-y-4">
+          {formError && (
+            <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-xs font-semibold text-red-600">
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" /> {formError}
+            </div>
+          )}
           <Field label="Account Holder Name">
-            <input required value={form.accountHolderName} onChange={updateField("accountHolderName")} className="input-text" placeholder="Tanvir Khan" />
+            <input required minLength={3} value={form.accountHolderName} onChange={updateField("accountHolderName")} className="input-text" placeholder="Tanvir Khan" />
           </Field>
           <Field label="Account Number">
-            <input required value={form.accountNumber} onChange={updateField("accountNumber")} className="input-text" placeholder="456789012345" />
+            <input required pattern="[0-9]{9,18}" title="9 to 18 digits" value={form.accountNumber} onChange={updateField("accountNumber")} className="input-text" placeholder="456789012345" />
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="IFSC Code">
-              <input required value={form.ifscCode} onChange={updateField("ifscCode")} className="input-text" placeholder="UTIB0007890" />
+              <input required pattern="[A-Za-z]{4}0[A-Za-z0-9]{6}" title="e.g. UTIB0007890" value={form.ifscCode} onChange={updateField("ifscCode")} className="input-text uppercase" placeholder="UTIB0007890" />
             </Field>
             <Field label="Bank Name">
               <input required value={form.bankName} onChange={updateField("bankName")} className="input-text" placeholder="Axis Bank" />
@@ -202,24 +220,27 @@ export default function Cards() {
           </div>
           <div className="flex justify-end gap-3 pt-1">
             <Button type="button" variant="ghost" onClick={() => setAddOpen(false)}>Cancel</Button>
-            <Button type="submit">Add Account</Button>
+            <Button type="submit" disabled={saving}>{saving ? "Adding..." : "Add Account"}</Button>
           </div>
         </form>
       </Modal>
 
       {/* Delete confirmation */}
       <Modal
-        open={!!deleteId}
-        onClose={() => setDeleteId(null)}
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
         title="Remove Bank Account?"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setDeleteId(null)}>Cancel</Button>
-            <Button variant="danger" icon={Trash2} onClick={confirmDelete}>Remove</Button>
+            <Button variant="ghost" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+            <Button variant="danger" icon={Trash2} onClick={confirmDelete} disabled={deleting}>{deleting ? "Removing..." : "Remove"}</Button>
           </>
         }
       >
-        <p className="text-sm text-slate-600">This bank account will no longer be available for adding money to your wallet.</p>
+        <p className="text-sm text-slate-600">
+          {deleteTarget?.bankName} · {deleteTarget?.accountNumber || "this account"} will no longer be available for adding money to your wallet.
+          {deleteTarget?.isPrimary && " Another linked account (if any) will automatically become your primary account."}
+        </p>
       </Modal>
 
       <style>{`

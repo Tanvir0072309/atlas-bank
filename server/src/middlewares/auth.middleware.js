@@ -1,9 +1,21 @@
 import jwt from "jsonwebtoken";
 import { JWT_CONFIG } from "../config/jwt.config.js";
 import * as authRepository from "../repositories/auth.repository.js";
-import ApiError from "../utils/apiError.js";
+import ApiError from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
+/**
+ * FIXED: previously this middleware only verified the JWT signature/expiry
+ * and blindly trusted req.user = decoded payload. That meant a deleted,
+ * blocked, or suspended user's still-valid access token continued to work
+ * for every protected route (including money-moving routes) until it
+ * naturally expired.
+ *
+ * This version re-hydrates the user from MongoDB on every request and
+ * rejects the token immediately if the account no longer exists or is
+ * not active. This is the correct trade-off for a banking application:
+ * one extra indexed lookup per request in exchange for instant revocation.
+ */
 export const protect = asyncHandler(async (req, res, next) => {
     const token = req.headers.authorization?.split(" ")[1];
 

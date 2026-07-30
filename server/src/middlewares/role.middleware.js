@@ -1,4 +1,4 @@
-import ApiError from "../utils/apiError.js";
+import ApiError from "../utils/ApiError.js";
 
 /**
  * NEW: this file existed but was empty (0 bytes) in the original project,

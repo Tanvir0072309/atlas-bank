@@ -5,6 +5,7 @@ import { Menu } from "lucide-react";
 import Sidebar from "./Sidebar";
 import LogoutModal from "./LogoutModal";
 import { useToast } from "../ui/Toast";
+import { useAuth } from "../../hooks/useAuth";
 
 export default function DashboardLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -13,11 +14,16 @@ export default function DashboardLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const toast = useToast();
+  const { logout } = useAuth();
 
   const handleLogoutConfirm = () => {
     setLogoutOpen(false);
+    // Actually tear down the session (clear tokens/user from storage +
+    // context) before navigating — previously this only navigated to
+    // /login while the access token, refresh token and user stayed in
+    // localStorage, so the user wasn't really logged out.
+    logout();
     toast?.showToast("You have been logged out successfully.", "success");
-    // Replace with real session teardown (clear tokens, call /logout API, etc.)
     navigate("/login");
   };
 

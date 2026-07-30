@@ -48,6 +48,12 @@ class WalletRepository {
             }
         );
     }
+
+    // Hard delete, used only to roll back a wallet that was just created
+    // during registration if a later step in that same registration fails.
+    async hardDeleteByUserId(userId) {
+        return await Wallet.deleteOne({ user: userId });
+    }
 }
 
 export default new WalletRepository();

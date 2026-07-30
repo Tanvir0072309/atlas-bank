@@ -31,6 +31,8 @@
  */
 
 import * as authRepository from "../repositories/auth.repository.js";
+import walletService from "./wallet.service.js";
+import walletRepository from "../repositories/wallet.repository.js";
 import { hashPassword, comparePassword } from "../helpers/bcrypt.helper.js";
 import { validatePasswordStrength } from "../helpers/password.helper.js";
 import {
@@ -119,6 +121,22 @@ export const registerUser = async (payload) => {
         emailVerificationExpiresAt: new Date(Date.now() + EMAIL_VERIFICATION_EXPIRES_MS),
     });
 
+    // FIX: a wallet is now auto-provisioned for every new user at
+    // registration time (previously nothing ever called the wallet
+    // route/service during signup, so users had no wallet until they
+    // manually hit POST /wallet — which the frontend never actually does).
+    // If this fails, roll back the user rather than leaving an account
+    // with no wallet stuck behind it.
+    try {
+        await walletService.createWallet(user);
+    } catch (err) {
+        await authRepository.deleteUserById(user._id);
+        throw new ApiError(
+            500,
+            "Registration could not be completed because a wallet could not be created for your account. Please try again."
+        );
+    }
+
     // FIX: this call is now AWAITED, and a failure is NOT swallowed.
     // Previously (in the lost file) this was almost certainly either
     // fire-and-forget or wrapped in a try/catch that logged and moved on,
@@ -127,10 +145,12 @@ export const registerUser = async (payload) => {
     try {
         await sendVerificationEmail(user.email, rawToken);
     } catch (err) {
-        // Roll back the registration rather than leaving a "pending" user
-        // with no way to ever activate their account, and tell the truth
-        // in the API response instead of a false 201.
+        // Roll back the registration (user + the wallet we just created)
+        // rather than leaving a "pending" user with no way to ever
+        // activate their account, and tell the truth in the API response
+        // instead of a false 201.
         await authRepository.deleteUserById(user._id);
+        await walletRepository.hardDeleteByUserId(user._id);
         throw new ApiError(
             502,
             "Registration could not be completed because the verification email failed to send. Please try again."

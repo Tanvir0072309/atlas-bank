@@ -17,6 +17,10 @@ export const accountService = {
     const { data } = await api.patch(`/accounts/${accountId}/primary`, {});
     return data?.data;
   },
+  async deleteAccount(accountId) {
+    const { data } = await api.delete(`/accounts/${accountId}`);
+    return data;
+  },
 };
 
 export default accountService;

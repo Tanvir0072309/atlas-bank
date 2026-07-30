@@ -1,8 +1,8 @@
-import mongoose from "mongoose";
 import transactionRepository from "../repositories/transaction.repository.js";
 import walletRepository from "../repositories/wallet.repository.js";
 import * as accountRepository from "../repositories/account.repository.js";
 import { generateTransactionNumber } from "../helpers/transactionNumber.helper.js";
+import { runInTransaction } from "../utils/transactionRunner.js";
 
 class TransactionService {
     // ==========================
@@ -14,58 +14,49 @@ class TransactionService {
         if (!accountId) throw new Error("Bank account is required.");
         if (amount <= 0) throw new Error("Amount must be greater than zero.");
 
-        const session = await mongoose.startSession();
-        try {
-            let transaction;
+        return await runInTransaction(async (session) => {
+            const wallet = await walletRepository.findWalletByUserId(
+                userId,
+                session
+            );
+            if (!wallet) throw new Error("Wallet not found.");
+            if (wallet.status !== "active") throw new Error("Wallet is not active.");
 
-            await session.withTransaction(async () => {
-                const wallet = await walletRepository.findWalletByUserId(
-                    userId,
-                    session
-                );
-                if (!wallet) throw new Error("Wallet not found.");
-                if (wallet.status !== "active") throw new Error("Wallet is not active.");
+            const account = await accountRepository.getAccountById(
+                userId,
+                accountId,
+                session
+            );
+            if (!account) throw new Error("Bank account not found.");
+            if (account.status !== "active") throw new Error("Bank account is not active.");
+            if (account.availableBalance < amount) {
+                throw new Error("Insufficient balance in the selected bank account.");
+            }
 
-                const account = await accountRepository.getAccountById(
-                    userId,
-                    accountId,
-                    session
-                );
-                if (!account) throw new Error("Bank account not found.");
-                if (account.status !== "active") throw new Error("Bank account is not active.");
-                if (account.availableBalance < amount) {
-                    throw new Error("Insufficient balance in the selected bank account.");
-                }
+            const transactionNumber = await generateTransactionNumber();
 
-                const transactionNumber = await generateTransactionNumber();
+            account.availableBalance -= amount;
+            wallet.availableBalance += amount;
 
-                account.availableBalance -= amount;
-                wallet.availableBalance += amount;
+            await account.save({ session });
+            await wallet.save({ session });
 
-                await account.save({ session });
-                await wallet.save({ session });
-
-                transaction = await transactionRepository.createTransaction(
-                    {
-                        transactionNumber,
-                        sender: userId,
-                        receiver: userId,
-                        senderAccount: account._id,
-                        receiverWallet: wallet._id,
-                        type: "deposit",
-                        amount,
-                        currency: wallet.currency,
-                        status: "success",
-                        description,
-                    },
-                    session
-                );
-            });
-
-            return transaction;
-        } finally {
-            session.endSession();
-        }
+            return await transactionRepository.createTransaction(
+                {
+                    transactionNumber,
+                    sender: userId,
+                    receiver: userId,
+                    senderAccount: account._id,
+                    receiverWallet: wallet._id,
+                    type: "deposit",
+                    amount,
+                    currency: wallet.currency,
+                    status: "success",
+                    description,
+                },
+                session
+            );
+        });
     }
 
     // ==========================
@@ -77,56 +68,47 @@ class TransactionService {
         if (!accountId) throw new Error("Bank account is required.");
         if (amount <= 0) throw new Error("Amount must be greater than zero.");
 
-        const session = await mongoose.startSession();
-        try {
-            let transaction;
+        return await runInTransaction(async (session) => {
+            const wallet = await walletRepository.findWalletByUserId(
+                userId,
+                session
+            );
+            if (!wallet) throw new Error("Wallet not found.");
+            if (wallet.status !== "active") throw new Error("Wallet is not active.");
+            if (wallet.availableBalance < amount) throw new Error("Insufficient wallet balance.");
 
-            await session.withTransaction(async () => {
-                const wallet = await walletRepository.findWalletByUserId(
-                    userId,
-                    session
-                );
-                if (!wallet) throw new Error("Wallet not found.");
-                if (wallet.status !== "active") throw new Error("Wallet is not active.");
-                if (wallet.availableBalance < amount) throw new Error("Insufficient wallet balance.");
+            const account = await accountRepository.getAccountById(
+                userId,
+                accountId,
+                session
+            );
+            if (!account) throw new Error("Bank account not found.");
+            if (account.status !== "active") throw new Error("Bank account is not active.");
 
-                const account = await accountRepository.getAccountById(
-                    userId,
-                    accountId,
-                    session
-                );
-                if (!account) throw new Error("Bank account not found.");
-                if (account.status !== "active") throw new Error("Bank account is not active.");
+            const transactionNumber = await generateTransactionNumber();
 
-                const transactionNumber = await generateTransactionNumber();
+            wallet.availableBalance -= amount;
+            account.availableBalance += amount;
 
-                wallet.availableBalance -= amount;
-                account.availableBalance += amount;
+            await wallet.save({ session });
+            await account.save({ session });
 
-                await wallet.save({ session });
-                await account.save({ session });
-
-                transaction = await transactionRepository.createTransaction(
-                    {
-                        transactionNumber,
-                        sender: userId,
-                        receiver: userId,
-                        senderWallet: wallet._id,
-                        receiverAccount: account._id,
-                        type: "withdraw",
-                        amount,
-                        currency: wallet.currency,
-                        status: "success",
-                        description,
-                    },
-                    session
-                );
-            });
-
-            return transaction;
-        } finally {
-            session.endSession();
-        }
+            return await transactionRepository.createTransaction(
+                {
+                    transactionNumber,
+                    sender: userId,
+                    receiver: userId,
+                    senderWallet: wallet._id,
+                    receiverAccount: account._id,
+                    type: "withdraw",
+                    amount,
+                    currency: wallet.currency,
+                    status: "success",
+                    description,
+                },
+                session
+            );
+        });
     }
 
     // ==========================
@@ -137,62 +119,53 @@ class TransactionService {
         if (!userId) throw new Error("Authenticated user not found.");
         if (amount <= 0) throw new Error("Amount must be greater than zero.");
 
-        const session = await mongoose.startSession();
-        try {
-            let transaction;
+        return await runInTransaction(async (session) => {
+            const senderWallet = await walletRepository.findWalletByUserId(
+                userId,
+                session
+            );
+            if (!senderWallet) throw new Error("Sender wallet not found.");
+            if (senderWallet.status !== "active") throw new Error("Sender wallet is not active.");
 
-            await session.withTransaction(async () => {
-                const senderWallet = await walletRepository.findWalletByUserId(
-                    userId,
-                    session
-                );
-                if (!senderWallet) throw new Error("Sender wallet not found.");
-                if (senderWallet.status !== "active") throw new Error("Sender wallet is not active.");
+            const receiverWallet = await walletRepository.findWalletByUpiId(
+                String(receiverUpiId).toLowerCase().trim(),
+                session
+            );
+            if (!receiverWallet) throw new Error("Receiver UPI ID not found.");
+            if (receiverWallet.status !== "active") throw new Error("Receiver wallet is not active.");
 
-                const receiverWallet = await walletRepository.findWalletByUpiId(
-                    String(receiverUpiId).toLowerCase().trim(),
-                    session
-                );
-                if (!receiverWallet) throw new Error("Receiver UPI ID not found.");
-                if (receiverWallet.status !== "active") throw new Error("Receiver wallet is not active.");
+            if (senderWallet._id.toString() === receiverWallet._id.toString()) {
+                throw new Error("You cannot transfer money to your own UPI ID.");
+            }
 
-                if (senderWallet._id.toString() === receiverWallet._id.toString()) {
-                    throw new Error("You cannot transfer money to your own UPI ID.");
-                }
+            if (senderWallet.availableBalance < amount) {
+                throw new Error("Insufficient wallet balance.");
+            }
 
-                if (senderWallet.availableBalance < amount) {
-                    throw new Error("Insufficient wallet balance.");
-                }
+            senderWallet.availableBalance -= amount;
+            receiverWallet.availableBalance += amount;
 
-                senderWallet.availableBalance -= amount;
-                receiverWallet.availableBalance += amount;
+            await senderWallet.save({ session });
+            await receiverWallet.save({ session });
 
-                await senderWallet.save({ session });
-                await receiverWallet.save({ session });
+            const transactionNumber = await generateTransactionNumber();
 
-                const transactionNumber = await generateTransactionNumber();
-
-                transaction = await transactionRepository.createTransaction(
-                    {
-                        transactionNumber,
-                        sender: userId,
-                        receiver: receiverWallet.user,
-                        senderWallet: senderWallet._id,
-                        receiverWallet: receiverWallet._id,
-                        type: "transfer",
-                        amount,
-                        currency: senderWallet.currency,
-                        status: "success",
-                        description,
-                    },
-                    session
-                );
-            });
-
-            return transaction;
-        } finally {
-            session.endSession();
-        }
+            return await transactionRepository.createTransaction(
+                {
+                    transactionNumber,
+                    sender: userId,
+                    receiver: receiverWallet.user,
+                    senderWallet: senderWallet._id,
+                    receiverWallet: receiverWallet._id,
+                    type: "transfer",
+                    amount,
+                    currency: senderWallet.currency,
+                    status: "success",
+                    description,
+                },
+                session
+            );
+        });
     }
 
     // ==========================

@@ -22,11 +22,10 @@ app.use(morgan("dev"));
 // CORS
 app.use(
     cors({
-        origin: "http://localhost:5173",
+        origin: "https://atlas-bank.netlify.app",
         credentials: true,
     })
 );
-
 // Body Parser
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

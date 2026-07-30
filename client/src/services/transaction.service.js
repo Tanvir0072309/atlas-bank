@@ -23,8 +23,9 @@ export const transactionService = {
   },
 
   // Bank account → wallet ("Add money" / deposit).
-  async depositFromBank({ amount, description }) {
+  async depositFromBank({ accountId, amount, description }) {
     const { data } = await api.post("/transactions/deposit", {
+      accountId,
       amount: Number(amount),
       description,
     });
@@ -32,8 +33,9 @@ export const transactionService = {
   },
 
   // Wallet → bank account.
-  async withdrawToBank({ amount, description }) {
+  async withdrawToBank({ accountId, amount, description }) {
     const { data } = await api.post("/transactions/withdraw", {
+      accountId,
       amount: Number(amount),
       description,
     });

@@ -46,12 +46,12 @@ export const getAccounts = async (userId) => {
  * Get Single Account
  * =====================================================
  */
-export const getAccountById = async (userId, accountId) => {
+export const getAccountById = async (userId, accountId, session = null) => {
     return await Account.findOne({
         _id: accountId,
         user: userId,
         deletedAt: null,
-    });
+    }).session(session);
 };
 
 /**

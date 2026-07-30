@@ -1,15 +1,17 @@
 import mongoose from "mongoose";
 import transactionRepository from "../repositories/transaction.repository.js";
 import walletRepository from "../repositories/wallet.repository.js";
+import * as accountRepository from "../repositories/account.repository.js";
 import { generateTransactionNumber } from "../helpers/transactionNumber.helper.js";
 
 class TransactionService {
     // ==========================
-    // Deposit
+    // Deposit (Bank Account -> Wallet)
     // ==========================
-    async deposit(user, amount, description = "") {
+    async deposit(user, accountId, amount, description = "") {
         const userId = user?._id || user?.id;
         if (!userId) throw new Error("Authenticated user not found.");
+        if (!accountId) throw new Error("Bank account is required.");
         if (amount <= 0) throw new Error("Amount must be greater than zero.");
 
         const session = await mongoose.startSession();
@@ -24,15 +26,31 @@ class TransactionService {
                 if (!wallet) throw new Error("Wallet not found.");
                 if (wallet.status !== "active") throw new Error("Wallet is not active.");
 
+                const account = await accountRepository.getAccountById(
+                    userId,
+                    accountId,
+                    session
+                );
+                if (!account) throw new Error("Bank account not found.");
+                if (account.status !== "active") throw new Error("Bank account is not active.");
+                if (account.availableBalance < amount) {
+                    throw new Error("Insufficient balance in the selected bank account.");
+                }
+
                 const transactionNumber = await generateTransactionNumber();
 
+                account.availableBalance -= amount;
                 wallet.availableBalance += amount;
+
+                await account.save({ session });
                 await wallet.save({ session });
 
                 transaction = await transactionRepository.createTransaction(
                     {
                         transactionNumber,
+                        sender: userId,
                         receiver: userId,
+                        senderAccount: account._id,
                         receiverWallet: wallet._id,
                         type: "deposit",
                         amount,
@@ -51,11 +69,12 @@ class TransactionService {
     }
 
     // ==========================
-    // Withdraw
+    // Withdraw (Wallet -> Bank Account)
     // ==========================
-    async withdraw(user, amount, description = "") {
+    async withdraw(user, accountId, amount, description = "") {
         const userId = user?._id || user?.id;
         if (!userId) throw new Error("Authenticated user not found.");
+        if (!accountId) throw new Error("Bank account is required.");
         if (amount <= 0) throw new Error("Amount must be greater than zero.");
 
         const session = await mongoose.startSession();
@@ -71,16 +90,29 @@ class TransactionService {
                 if (wallet.status !== "active") throw new Error("Wallet is not active.");
                 if (wallet.availableBalance < amount) throw new Error("Insufficient wallet balance.");
 
+                const account = await accountRepository.getAccountById(
+                    userId,
+                    accountId,
+                    session
+                );
+                if (!account) throw new Error("Bank account not found.");
+                if (account.status !== "active") throw new Error("Bank account is not active.");
+
                 const transactionNumber = await generateTransactionNumber();
 
                 wallet.availableBalance -= amount;
+                account.availableBalance += amount;
+
                 await wallet.save({ session });
+                await account.save({ session });
 
                 transaction = await transactionRepository.createTransaction(
                     {
                         transactionNumber,
                         sender: userId,
+                        receiver: userId,
                         senderWallet: wallet._id,
+                        receiverAccount: account._id,
                         type: "withdraw",
                         amount,
                         currency: wallet.currency,

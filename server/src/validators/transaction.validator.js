@@ -1,9 +1,22 @@
 import Joi from "joi";
 
+const objectId = Joi.string()
+    .hex()
+    .length(24)
+    .messages({
+        "string.base": "Invalid account id.",
+        "string.hex": "Invalid account id.",
+        "string.length": "Invalid account id.",
+    });
+
 // ==========================
 // Deposit
 // ==========================
 export const depositValidator = Joi.object({
+    accountId: objectId.required().messages({
+        "any.required": "Please select a bank account to add money from.",
+    }),
+
     amount: Joi.number()
         .positive()
         .required()
@@ -24,6 +37,10 @@ export const depositValidator = Joi.object({
 // Withdraw
 // ==========================
 export const withdrawValidator = Joi.object({
+    accountId: objectId.required().messages({
+        "any.required": "Please select a bank account to send money to.",
+    }),
+
     amount: Joi.number()
         .positive()
         .required()

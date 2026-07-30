@@ -20,10 +20,11 @@ class TransactionController {
                 });
             }
 
-            const { amount, description } = value;
+            const { accountId, amount, description } = value;
 
             const transaction = await transactionService.deposit(
                 req.user,
+                accountId,
                 amount,
                 description
             );
@@ -52,10 +53,11 @@ class TransactionController {
                 });
             }
 
-            const { amount, description } = value;
+            const { accountId, amount, description } = value;
 
             const transaction = await transactionService.withdraw(
                 req.user,
+                accountId,
                 amount,
                 description
             );

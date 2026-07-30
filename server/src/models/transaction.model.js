@@ -33,6 +33,18 @@ const transactionSchema = new mongoose.Schema(
             default: null,
         },
 
+        senderAccount: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Account",
+            default: null,
+        },
+
+        receiverAccount: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Account",
+            default: null,
+        },
+
         type: {
             type: String,
             enum: [

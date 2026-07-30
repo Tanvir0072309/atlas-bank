@@ -1,59 +1,92 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Landmark, ArrowRight, CheckCircle2, User, Building2 } from "lucide-react";
+import { Send, ArrowRight, CheckCircle2, User, Building2, ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
 import PageHeader from "../../components/ui/PageHeader";
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
 import Modal from "../../components/ui/Modal";
 import Badge from "../../components/ui/Badge";
 import logo from "../../assets/logo.png";
-import { BANK_ACCOUNTS, WALLET, WALLET_TRANSACTIONS, formatCurrency, formatDateTime } from "../../data/mockData";
+import { useBankingData } from "../../hooks/useBankingData";
+import { formatCurrency, formatDateTime } from "../../utils/transactions";
+import { transactionService } from "../../services/transaction.service";
 import { useToast } from "../../components/ui/Toast";
 
 const TABS = [
-  { id: "upi", label: "Transfer Money (UPI)", icon: Send },
-  { id: "bank", label: "Bank Account → Wallet", icon: Landmark },
+  { id: "upi", label: "UPI Transfer", icon: Send },
+  { id: "deposit", label: "Bank → Wallet", icon: ArrowDownToLine },
+  { id: "withdraw", label: "Wallet → Bank", icon: ArrowUpFromLine },
 ];
 
 export default function TransferMoney() {
+  const { wallet, accounts, normalizedTransactions, loading, refresh } = useBankingData();
   const [tab, setTab] = useState("upi");
   const [receiverUpiId, setReceiverUpiId] = useState("");
+  const [accountId, setAccountId] = useState("");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("Money Transfer");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [successOpen, setSuccessOpen] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
   const toast = useToast();
 
-  const primaryBank = BANK_ACCOUNTS[0];
   const recentTransfers = useMemo(
-    () => [...WALLET_TRANSACTIONS].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5),
-    []
+    () => normalizedTransactions.slice(0, 5),
+    [normalizedTransactions]
   );
+
+  // Default to the primary account (or first one) whenever accounts load
+  // or the tab switches to one that needs a bank account.
+  useEffect(() => {
+    if ((tab === "deposit" || tab === "withdraw") && accounts.length && !accountId) {
+      const primary = accounts.find((a) => a.isPrimary) || accounts[0];
+      setAccountId(primary._id);
+    }
+  }, [tab, accounts, accountId]);
+
+  const selectedAccount = accounts.find((a) => a._id === accountId) || null;
 
   const canSubmit =
     amount &&
     Number(amount) > 0 &&
-    (tab === "upi" ? receiverUpiId.trim().length > 3 : true);
-
-  // Exact payload shape the backend expects for a UPI transfer.
-  // const payload = { receiverUpiId, amount: Number(amount) || 0, description };
+    (tab === "upi" ? receiverUpiId.trim().length > 3 : !!accountId);
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setErrorMsg("");
     if (!canSubmit) return;
     setConfirmOpen(true);
   };
 
-  const confirmTransfer = () => {
+  const confirmTransfer = async () => {
     setConfirmOpen(false);
     setSending(true);
-    // Simulated network delay so the send animation has time to play.
-    setTimeout(() => {
+    setErrorMsg("");
+
+    try {
+      if (tab === "upi") {
+        await transactionService.transferUpi({
+          receiverUpiId: receiverUpiId.trim(),
+          amount,
+          description,
+        });
+      } else if (tab === "deposit") {
+        await transactionService.depositFromBank({ accountId, amount, description });
+      } else {
+        await transactionService.withdrawToBank({ accountId, amount, description });
+      }
+
+      await refresh();
       setSending(false);
       setSuccessOpen(true);
       toast?.showToast(`${formatCurrency(Number(amount))} transferred successfully`, "success");
-    }, 2200);
+    } catch (error) {
+      setSending(false);
+      const message = error?.response?.data?.message || "Transfer failed. Please try again.";
+      setErrorMsg(message);
+      toast?.showToast(message, "error");
+    }
   };
 
   const resetForm = () => {
@@ -68,7 +101,7 @@ export default function TransferMoney() {
       <PageHeader
         title="Transfer Money"
         crumb="Transfer Money"
-        description="Send money instantly via UPI, or move money from your bank account into your wallet."
+        description="Send money instantly via UPI, or move money between your bank account and your wallet."
       />
 
       <div className="grid gap-5 lg:grid-cols-3">
@@ -78,7 +111,10 @@ export default function TransferMoney() {
             {TABS.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
-                onClick={() => setTab(id)}
+                onClick={() => {
+                  setTab(id);
+                  setErrorMsg("");
+                }}
                 className={`flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
                   tab === id ? "bg-[#800A38] text-white shadow-md shadow-[#800A38]/20" : "text-slate-500 hover:text-[#800A38]"
                 }`}
@@ -87,6 +123,12 @@ export default function TransferMoney() {
               </button>
             ))}
           </div>
+
+          {errorMsg && (
+            <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-600">
+              {errorMsg}
+            </div>
+          )}
 
           {tab === "upi" ? (
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -124,7 +166,7 @@ export default function TransferMoney() {
 
               <div className="rounded-2xl border border-rose-100 bg-rose-50/40 p-4 text-xs text-slate-500">
                 <p className="font-bold text-slate-600 mb-1">Paying from</p>
-                <p>Atlas Wallet · Available balance {formatCurrency(WALLET.balance)}</p>
+                <p>Atlas Wallet · Available balance {wallet ? formatCurrency(wallet.availableBalance) : "—"}</p>
               </div>
 
               <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={!canSubmit} icon={ArrowRight} iconPosition="right">
@@ -133,11 +175,37 @@ export default function TransferMoney() {
             </form>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="rounded-2xl border border-rose-100 bg-rose-50/40 p-4">
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-1">From Bank Account</p>
-                <p className="text-sm font-extrabold text-slate-900">{primaryBank.bankName}</p>
-                <p className="text-xs text-slate-500 mt-0.5">•••• {primaryBank.accountNumber.slice(-4)} · {primaryBank.branchName}</p>
-              </div>
+              {accounts.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-rose-200 bg-rose-50/40 p-4 text-xs text-slate-500">
+                  You don't have a linked bank account yet. Add one from{" "}
+                  <span className="font-bold text-[#800A38]">My Accounts</span> to move money{" "}
+                  {tab === "deposit" ? "into" : "out of"} your wallet.
+                </div>
+              ) : (
+                <Field label={tab === "deposit" ? "From Bank Account" : "To Bank Account"}>
+                  <select
+                    value={accountId}
+                    onChange={(e) => setAccountId(e.target.value)}
+                    className="input-select"
+                  >
+                    {accounts.map((a) => (
+                      <option key={a._id} value={a._id}>
+                        {a.bankName} · {a.accountType} {a.isPrimary ? "(Primary)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              )}
+
+              {selectedAccount && (
+                <div className="rounded-2xl border border-rose-100 bg-rose-50/40 p-4">
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-1">
+                    {tab === "deposit" ? "Money leaves this account" : "Money lands in this account"}
+                  </p>
+                  <p className="text-sm font-extrabold text-slate-900">{selectedAccount.bankName}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{selectedAccount.branchName}</p>
+                </div>
+              )}
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Amount (₹)">
@@ -155,14 +223,26 @@ export default function TransferMoney() {
                     type="text"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Add money to wallet"
+                    placeholder={tab === "deposit" ? "Add money to wallet" : "Move to bank"}
                     className="input-text"
                   />
                 </Field>
               </div>
 
-              <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={!canSubmit} icon={ArrowRight} iconPosition="right">
-                Add to Wallet
+              <div className="rounded-2xl border border-rose-100 bg-rose-50/40 p-4 text-xs text-slate-500">
+                <p className="font-bold text-slate-600 mb-1">Wallet balance</p>
+                <p>Atlas Wallet · Available balance {wallet ? formatCurrency(wallet.availableBalance) : "—"}</p>
+              </div>
+
+              <Button
+                type="submit"
+                size="lg"
+                className="w-full sm:w-auto"
+                disabled={!canSubmit || accounts.length === 0}
+                icon={ArrowRight}
+                iconPosition="right"
+              >
+                {tab === "deposit" ? "Add to Wallet" : "Send to Bank"}
               </Button>
             </form>
           )}
@@ -172,15 +252,23 @@ export default function TransferMoney() {
         <Card noPadding>
           <h3 className="p-5 pb-3 text-sm font-bold text-slate-900">Recent Transfers</h3>
           <div className="px-5 pb-5 divide-y divide-rose-50">
-            {recentTransfers.map((t) => (
-              <div key={t._id} className="flex items-center justify-between py-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-slate-800">{t.description}</p>
-                  <p className="text-[11px] text-slate-400">{formatDateTime(t.createdAt)}</p>
+            {loading ? (
+              <p className="py-6 text-center text-xs text-slate-400">Loading…</p>
+            ) : recentTransfers.length === 0 ? (
+              <p className="py-6 text-center text-xs text-slate-400">No transactions yet.</p>
+            ) : (
+              recentTransfers.map((t) => (
+                <div key={t.id} className="flex items-center justify-between py-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-slate-800">{t.desc}</p>
+                    <p className="text-[11px] text-slate-400">{formatDateTime(t.date)}</p>
+                  </div>
+                  <p className={`shrink-0 text-sm font-bold ${t.type === "credit" ? "text-emerald-600" : "text-slate-800"}`}>
+                    {t.type === "credit" ? "+" : "-"}{formatCurrency(t.amount)}
+                  </p>
                 </div>
-                <p className="shrink-0 text-sm font-bold text-slate-800">{formatCurrency(t.amount)}</p>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </Card>
       </div>
@@ -203,13 +291,16 @@ export default function TransferMoney() {
           {tab === "upi" ? (
             <Row label="Receiver UPI ID" value={receiverUpiId || "—"} />
           ) : (
-            <Row label="From" value={`${primaryBank.bankName} •••• ${primaryBank.accountNumber.slice(-4)}`} />
+            <Row
+              label={tab === "deposit" ? "From" : "To"}
+              value={selectedAccount ? `${selectedAccount.bankName} · ${selectedAccount.accountType}` : "—"}
+            />
           )}
           {description && <Row label="Description" value={description} />}
         </div>
       </Modal>
 
-      {/* Sending animation — bank logo pulses center-screen while money "moves" */}
+      {/* Sending animation */}
       <AnimatePresence>
         {sending && (
           <motion.div
@@ -243,7 +334,7 @@ export default function TransferMoney() {
                     {tab === "upi" ? <Send className="h-6 w-6" /> : <Building2 className="h-6 w-6" />}
                   </div>
                   <span className="max-w-[80px] truncate text-[10px] font-bold text-slate-500">
-                    {tab === "upi" ? (receiverUpiId || "Receiver") : "Wallet"}
+                    {tab === "upi" ? (receiverUpiId || "Receiver") : tab === "deposit" ? "Wallet" : selectedAccount?.bankName || "Bank"}
                   </span>
                 </div>
 
@@ -271,7 +362,7 @@ export default function TransferMoney() {
           <CheckCircle2 className="h-14 w-14 text-emerald-500 mb-4" />
           <p className="text-xl sm:text-2xl font-extrabold text-slate-900">{formatCurrency(Number(amount) || 0)}</p>
           <p className="mt-1 text-sm text-slate-500">has been transferred successfully.</p>
-          <Badge tone="success" className="mt-3">Reference ID: TXN{Math.floor(Math.random() * 900000 + 100000)}</Badge>
+          <Badge tone="success" className="mt-3">Reference ID: {recentTransfers[0]?.transactionNumber || "—"}</Badge>
         </div>
       </Modal>
 

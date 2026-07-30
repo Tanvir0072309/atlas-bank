@@ -73,9 +73,9 @@ export default function Transactions() {
       if (tab === "upi") {
         result = await transactionService.transferUpi({ receiverUpiId, amount: Number(amount), description });
       } else if (direction === "bank_to_wallet") {
-        result = await transactionService.bankToWallet({ accountId, amount: Number(amount), description });
+        result = await transactionService.depositFromBank({ accountId, amount: Number(amount), description });
       } else {
-        result = await transactionService.withdraw({ amount: Number(amount), description, accountId });
+        result = await transactionService.withdrawToBank({ amount: Number(amount), description, accountId });
       }
       setSuccessInfo({ amount: Number(amount), transactionNumber: result?.transactionNumber });
       resetTxForm();
@@ -269,9 +269,8 @@ export default function Transactions() {
             <button
               key={id}
               onClick={() => { setTab(id); setFormError(""); }}
-              className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-bold transition-all ${
-                tab === id ? "bg-[#800A38] text-white shadow-md shadow-[#800A38]/20" : "text-slate-500 hover:text-[#800A38]"
-              }`}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-bold transition-all ${tab === id ? "bg-[#800A38] text-white shadow-md shadow-[#800A38]/20" : "text-slate-500 hover:text-[#800A38]"
+                }`}
             >
               <Icon className="h-3.5 w-3.5" /> {label}
             </button>

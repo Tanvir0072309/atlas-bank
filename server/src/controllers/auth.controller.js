@@ -61,8 +61,14 @@ export const verifyEmail = async (req, res) => {
         if (result.refreshToken) {
             res.cookie("refreshToken", result.refreshToken, {
                 httpOnly: true,
+                // FIX: "strict" (and even "lax") blocks this cookie on
+                // cross-site requests entirely — the browser will not send it
+                // back at all when the frontend (Netlify) and backend are on
+                // different domains, which silently breaks refresh-token based
+                // session renewal in production. "none" is required for
+                // cross-site cookies, and "none" requires secure:true.
                 secure: process.env.NODE_ENV === "production",
-                sameSite: "strict",
+                sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
                 maxAge:
                     JWT_CONFIG.refreshToken.expiresInMs ||
                     7 * 24 * 60 * 60 * 1000,
@@ -122,8 +128,14 @@ export const verifyLogin = async (req, res) => {
             result.refreshToken,
             {
                 httpOnly: true,
+                // FIX: "strict" (and even "lax") blocks this cookie on
+                // cross-site requests entirely — the browser will not send it
+                // back at all when the frontend (Netlify) and backend are on
+                // different domains, which silently breaks refresh-token based
+                // session renewal in production. "none" is required for
+                // cross-site cookies, and "none" requires secure:true.
                 secure: process.env.NODE_ENV === "production",
-                sameSite: "strict",
+                sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
                 maxAge: JWT_CONFIG.refreshToken.expiresInMs || 7 * 24 * 60 * 60 * 1000,
             }
         );

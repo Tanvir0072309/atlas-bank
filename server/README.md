@@ -306,6 +306,11 @@ NODE_ENV=development
 
 MONGO_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/atlasbank
 
+# Frontend URL — used for CORS (so the browser lets the client talk to
+# this API) and for links inside verification/reset emails.
+# Local dev: http://localhost:5173
+CLIENT_URL=https://atlas-bank.netlify.app
+
 JWT_ACCESS_SECRET=your_access_token_secret
 JWT_REFRESH_SECRET=your_refresh_token_secret
 JWT_ACCESS_EXPIRY=15m

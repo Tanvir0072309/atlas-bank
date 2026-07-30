@@ -20,9 +20,30 @@ app.use(helmet());
 app.use(morgan("dev"));
 
 // CORS
+// FIX: origin was hardcoded to the production Netlify URL only. Any other
+// frontend (local Vite dev server, a Netlify preview URL, a different
+// deployment) got its requests blocked by the browser before they ever
+// reached these routes — which looks exactly like "transactions/UPI/wallet
+// transfers don't work" (in reality NOTHING reached the API, including
+// login), since axios sends withCredentials:true and every request needs
+// an explicit CORS allow-list match.
+// Now: always allow local dev origins, plus whatever CLIENT_URL is set to
+// in the environment (defaults to the Netlify URL if not set).
+const allowedOrigins = [
+    process.env.CLIENT_URL || "https://atlas-bank.netlify.app",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+];
+
 app.use(
     cors({
-        origin: "https://atlas-bank.netlify.app",
+        origin: (origin, callback) => {
+            // Allow non-browser requests (curl/Postman) with no Origin header.
+            if (!origin || allowedOrigins.includes(origin)) {
+                return callback(null, true);
+            }
+            return callback(new Error("Not allowed by CORS"));
+        },
         credentials: true,
     })
 );

@@ -22,10 +22,7 @@ app.use(morgan("dev"));
 // CORS
 app.use(
     cors({
-        origin: [
-            "http://localhost:5173",
-            "https://atlas-bank.netlify.app",
-        ],
+        origin: "http://localhost:5173",
         credentials: true,
     })
 );
@@ -57,10 +54,7 @@ app.use("/api/v1/ai", aiRoutes);
 
 // Unknown route -> clean JSON 404 instead of Express's default HTML page
 app.use((req, res) => {
-    res.status(404).json({
-        success: false,
-        message: `Route not found: ${req.originalUrl}`,
-    });
+    res.status(404).json({ success: false, message: `Route not found: ${req.originalUrl}` });
 });
 
 // Must be the last middleware — catches every next(error) from every route above

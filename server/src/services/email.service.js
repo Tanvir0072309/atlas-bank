@@ -1,62 +1,33 @@
-import axios from "axios";
+import nodemailer from "nodemailer";
 
-console.log("========== EMAIL SERVICE LOADED (BREVO REST API) ==========");
-
-/**
- * Parses "Name <email@domain.com>" or "email@domain.com" into Brevo's required sender object format:
- * { name: "...", email: "..." }
- */
-const parseSender = (senderString) => {
-    const defaultSender = { name: "Atlas Bank", email: "no-reply@atlasbank.com" };
-
-    if (!senderString) return defaultSender;
-
-    const match = senderString.match(/^(?:"?([^"]*)"?\s)?(?:<(.+)>|(.+))$/);
-    if (!match) return defaultSender;
-
-    const name = match[1]?.trim() || "Atlas Bank";
-    const email = (match[2] || match[3])?.trim() || "no-reply@atlasbank.com";
-
-    return { name, email };
-};
+const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT),
+    secure: false,
+    auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+    },
+});
 
 /**
- * Send Email via Brevo REST API v3 (Axios Direct HTTPS Call)
+ * Send Email
  */
 export const sendEmail = async ({ to, subject, html }) => {
     try {
-        const apiKey = process.env.BREVO_API_KEY;
-        if (!apiKey) {
-            console.warn("⚠️ BREVO_API_KEY is missing from environment variables.");
-        }
-
-        const sender = parseSender(process.env.SMTP_FROM);
-
-        const payload = {
-            sender,
-            to: [{ email: to }],
+        const info = await transporter.sendMail({
+            from:
+                process.env.SMTP_FROM ||
+                '"Atlas Bank" <no-reply@atlasbank.com>',
+            to,
             subject,
-            htmlContent: html,
-        };
+            html,
+        });
 
-        const response = await axios.post(
-            "https://api.brevo.com/v3/smtp/email",
-            payload,
-            {
-                headers: {
-                    "api-key": apiKey,
-                    "Content-Type": "application/json",
-                },
-            }
-        );
-
-        console.log("✅ Email Sent via Brevo REST API:", response.data);
-        return response.data;
+        console.log("✅ Email Sent:", info);
+        return info;
     } catch (error) {
-        console.error(
-            "❌ Brevo Email Error:",
-            error.response?.data || error.message
-        );
+        console.error("❌ Email Error:", error);
         throw error;
     }
 };

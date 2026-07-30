@@ -15,6 +15,7 @@ export const hashPassword = async (password) => {
 
     return await bcrypt.hash(password, SALT_ROUNDS);
 };
+
 /**
  * Compare plain password with hashed password.
  *

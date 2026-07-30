@@ -16,6 +16,7 @@ import {
   ChevronsRight,
   ShieldCheck,
 } from "lucide-react";
+import { NOTIFICATIONS } from "../../data/mockData";
 import { useAuth } from "../../hooks/useAuth";
 import { BANK_NAME } from "../../utils/constants";
 import logo from "../../assets/logo.png";
@@ -45,7 +46,7 @@ const MENU_GROUPS = [
     label: "Account",
     items: [
       { label: "My Profile", icon: User, to: "/dashboard/profile" },
-      { label: "Notifications", icon: Bell, to: "/dashboard/notifications" },
+      { label: "Notifications", icon: Bell, to: "/dashboard/notifications", badgeKey: "unread" },
       { label: "Help Center", icon: LifeBuoy, to: "/dashboard/help" },
     ],
   },
@@ -111,8 +112,9 @@ function NavItem({ label, icon: Icon, to, badge, tag, collapsed, onNavigate }) {
   );
 }
 
-function SidebarContent({ onNavigate, collapsed, onToggleCollapse, showCollapseToggle }) {
+function SidebarContent({ onNavigate, onLogoutClick, collapsed, onToggleCollapse, showCollapseToggle }) {
   const { user } = useAuth();
+  const unread = NOTIFICATIONS.filter((n) => !n.read).length;
   const displayName = user?.fullName || "You";
   const verified = Boolean(user?.isEmailVerified);
 
@@ -120,7 +122,7 @@ function SidebarContent({ onNavigate, collapsed, onToggleCollapse, showCollapseT
     <div className="flex h-full flex-col">
       {/* Brand */}
       <div className={`flex items-center gap-3 px-6 py-6 ${collapsed ? "justify-center px-0" : ""}`}>
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white overflow-hidden">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-md shadow-[#800A38]/10 border border-rose-100 overflow-hidden">
           <img src={logo} alt={BANK_NAME} className="h-7 w-7 object-contain" />
         </div>
         {!collapsed && (
@@ -145,6 +147,7 @@ function SidebarContent({ onNavigate, collapsed, onToggleCollapse, showCollapseT
                 <NavItem
                   key={item.to}
                   {...item}
+                  badge={item.badgeKey === "unread" ? unread : 0}
                   collapsed={collapsed}
                   onNavigate={onNavigate}
                 />
@@ -196,11 +199,10 @@ function SidebarContent({ onNavigate, collapsed, onToggleCollapse, showCollapseT
         </NavLink>
       </div>
 
-      {/* Logout Route */}
+      {/* Logout */}
       <div className={`px-3 pb-6 pt-2 border-t border-rose-100 ${collapsed ? "flex justify-center" : ""}`}>
-        <NavLink
-          to="/logout"
-          onClick={onNavigate}
+        <button
+          onClick={onLogoutClick}
           title={collapsed ? "Logout" : undefined}
           className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors ${
             collapsed ? "justify-center px-0" : "w-full"
@@ -208,13 +210,13 @@ function SidebarContent({ onNavigate, collapsed, onToggleCollapse, showCollapseT
         >
           <LogOut className="h-[18px] w-[18px] shrink-0 text-slate-400" />
           {!collapsed && "Logout"}
-        </NavLink>
+        </button>
       </div>
     </div>
   );
 }
 
-export default function Sidebar({ mobileOpen, onMobileClose, collapsed = false, onToggleCollapse }) {
+export default function Sidebar({ mobileOpen, onMobileClose, onLogoutClick, collapsed = false, onToggleCollapse }) {
   return (
     <>
       {/* Desktop sidebar */}
@@ -224,6 +226,7 @@ export default function Sidebar({ mobileOpen, onMobileClose, collapsed = false, 
         }`}
       >
         <SidebarContent
+          onLogoutClick={onLogoutClick}
           collapsed={collapsed}
           onToggleCollapse={onToggleCollapse}
           showCollapseToggle
@@ -255,7 +258,7 @@ export default function Sidebar({ mobileOpen, onMobileClose, collapsed = false, 
               >
                 <X className="h-5 w-5" />
               </button>
-              <SidebarContent onNavigate={onMobileClose} collapsed={false} />
+              <SidebarContent onNavigate={onMobileClose} onLogoutClick={onLogoutClick} collapsed={false} />
             </motion.aside>
           </>
         )}

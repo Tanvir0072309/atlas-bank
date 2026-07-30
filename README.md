@@ -6,17 +6,21 @@
 
 <br/>
 
-![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=node.js&logoColor=white)
-![Express](https://img.shields.io/badge/Express%205-000000?style=flat-square&logo=express&logoColor=white)
-![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=flat-square&logo=mongodb&logoColor=white)
-![React](https://img.shields.io/badge/React%2019-61DAFB?style=flat-square&logo=react&logoColor=black)
-![Vite](https://img.shields.io/badge/Vite%208-646CFF?style=flat-square&logo=vite&logoColor=white)
-![TailwindCSS](https://img.shields.io/badge/Tailwind%20CSS%204-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
-![JWT](https://img.shields.io/badge/JWT-Auth-black?style=flat-square&logo=jsonwebtokens)
+![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=node.js&logoColor=white)
+![Express](https://img.shields.io/badge/Express%205-000000?style=for-the-badge&logo=express&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
+![React](https://img.shields.io/badge/React%2019-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![Vite](https://img.shields.io/badge/Vite%208-646CFF?style=for-the-badge&logo=vite&logoColor=white)
+![TailwindCSS](https://img.shields.io/badge/Tailwind%20CSS%204-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)
+![JWT](https://img.shields.io/badge/JWT-Auth-black?style=for-the-badge&logo=jsonwebtokens)
+
+![Status](https://img.shields.io/badge/Status-Active%20Development-brightgreen?style=flat-square)
+![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)
+![Made with](https://img.shields.io/badge/Made%20with-%E2%9D%A4-red?style=flat-square)
 
 **Wallets · UPI-style Transfers · ACID-Safe Transactions · OTP Login · AI Banking Assistant**
 
-[Features](#-features) • [Architecture](#-architecture-overview) • [Getting Started](#-getting-started) • [API Overview](#-api-overview) • [Security](#-security-features) • [Contributing](#-contributing)
+[Features](#-features) • [Architecture](#️-architecture-overview) • [Getting Started](#-getting-started) • [API Overview](#-api-overview) • [Security](#️-security-features) • [Contributing](#-contributing)
 
 </div>
 
@@ -29,68 +33,35 @@
 It is built with a clean **Repository → Service → Controller** architecture on the backend and a component-driven **React 19 + Vite** frontend, designed to read like a real production codebase rather than a tutorial project.
 
 > [!NOTE]
-> This is an actively evolving project. Some enterprise-grade extras (Swagger docs, automated test suite, Docker Compose) are tracked under [Future Improvements](#-future-improvements) and are not yet part of the codebase — see `server/README.md` for the current honest status.
-
----
-
-## 🎬 Live Demo
-
-| Environment | Link |
-|---|---|
-| 🌐 Frontend | `<!-- add your deployed frontend URL here -->` |
-| ⚙️ Backend API | `<!-- add your deployed API base URL here -->` |
-| 📘 Postman Collection | `<!-- add Postman collection link here -->` |
-
-## 🖼️ Screenshots
+> This is an actively evolving project. Some enterprise-grade extras (Swagger docs, automated test suite, Docker Compose) are tracked under [Future Improvements](#️-future-improvements) and are not yet part of the codebase — see `server/README.md` for the current honest status.
 
 <div align="center">
 
-| Login | Dashboard | Wallet |
-|---|---|---|
-| `<!-- screenshot -->` | `<!-- screenshot -->` | `<!-- screenshot -->` |
-
-| Transfer Money | Transactions | AI Assistant |
-|---|---|---|
-| `<!-- screenshot -->` | `<!-- screenshot -->` | `<!-- screenshot -->` |
+```
+✦ ── ✦ ── ✦ ── ✦ ── ✦ ── ✦ ── ✦ ── ✦ ── ✦ ── ✦
+```
 
 </div>
 
----
+## 🌟 Why Atlas Bank Stands Out
 
-## 📚 Table of Contents
+Atlas Bank isn't a toy CRUD app wearing a bank's costume — it's engineered with the discipline of an actual fintech product. Every layer of this stack was chosen deliberately, not defaulted into:
 
-- [🏦 Atlas Bank](#-atlas-bank)
-    - [A production-grade full-stack digital banking platform built on the MERN stack](#a-production-grade-full-stack-digital-banking-platform-built-on-the-mern-stack)
-  - [📖 Project Description](#-project-description)
-  - [🎬 Live Demo](#-live-demo)
-  - [🖼️ Screenshots](#️-screenshots)
-  - [📚 Table of Contents](#-table-of-contents)
-  - [✨ Features](#-features)
-    - [🧑‍💼 Account \& Identity](#-account--identity)
-    - [🏦 Banking Core](#-banking-core)
-    - [📊 Dashboard Experience](#-dashboard-experience)
-    - [🛡️ Role-Aware Design](#️-role-aware-design)
-  - [🏗️ Architecture Overview](#️-architecture-overview)
-  - [🧰 Tech Stack](#-tech-stack)
-  - [📂 Folder Structure](#-folder-structure)
-  - [🚀 Getting Started](#-getting-started)
-    - [Prerequisites](#prerequisites)
-    - [Client Setup](#client-setup)
-    - [Server Setup](#server-setup)
-    - [Database Setup](#database-setup)
-  - [🔑 Environment Variables](#-environment-variables)
-  - [🔌 API Overview](#-api-overview)
-  - [🔐 Authentication Flow](#-authentication-flow)
-  - [🛡️ Security Features](#️-security-features)
-  - [🤖 AI Banking Assistant](#-ai-banking-assistant)
-  - [💰 Wallet System \& Transactions](#-wallet-system--transactions)
-  - [☁️ Deployment](#️-deployment)
-  - [🗺️ Future Improvements](#️-future-improvements)
-  - [🤝 Contributing](#-contributing)
-  - [📄 License](#-license)
-  - [👨‍💻 Developer Information](#-developer-information)
-  - [🙏 Acknowledgements](#-acknowledgements)
-  - [📬 Contact](#-contact)
+- **React 19** on **Vite 8** gives the frontend near-instant HMR and a build pipeline fast enough to keep iteration frictionless, while **Tailwind CSS 4** and **Framer Motion** turn routine banking screens — balances, transfers, statements — into an interface that actually feels alive, with fluid, physics-based motion instead of static page-flips.
+- **Express 5** on **Node.js**, paired with a strict **Routes → Controllers → Services → Repositories** pipeline, keeps business logic completely decoupled from HTTP plumbing. That's the same architectural discipline you'd expect from a production banking backend, not a weekend script.
+- **MongoDB + Mongoose 9**, driven through real **multi-document ACID transactions**, means a transfer either fully happens or fully doesn't — no half-updated wallets, no silent data corruption, even under concurrent load.
+- **JWT access/refresh tokens**, **bcrypt** hashing, **Joi** validation, **Helmet**, and tiered **rate-limiting** work together as layered defense — this is security treated as a first-class citizen, not an afterthought bolted on before deployment.
+- The **Groq-powered AI Assistant** is the standout feature: a genuinely useful, context-aware financial companion that reasons only over *your own* transaction history — smart, private, and fast, thanks to Groq's inference speed.
+
+The result is a codebase that reads like it was built to be maintained, extended, and trusted — not just demoed once and forgotten.
+
+<div align="center">
+
+```
+✦ ── ✦ ── ✦ ── ✦ ── ✦ ── ✦ ── ✦ ── ✦ ── ✦ ── ✦
+```
+
+</div>
 
 ---
 
@@ -114,31 +85,42 @@ It is built with a clean **Repository → Service → Controller** architecture 
 
 ### 📊 Dashboard Experience
 - Customer dashboard with real-time balance
-- Analytics view over spending/income patterns
+- Analytics view over spending/income patterns (live data, not mock numbers)
 - Notifications, Cards, Help Center, Beneficiaries, Profile & Settings pages
 - **AI Banking Assistant** for natural-language queries about the user's own finances
 
 ### 🛡️ Role-Aware Design
 - Four roles baked into the data model: `customer`, `employee`, `manager`, `admin` (see `server/src/docs/roles.md`)
 
+<div align="center">
+
+```
+  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+  ░  Secure  →  Scalable  →  Real-time  →  Smart  ░
+  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+```
+
+</div>
+
 ---
 
 ## 🏗️ Architecture Overview
 
 ```
-┌─────────────────────┐        HTTPS/JSON        ┌──────────────────────────┐
-│   React 19 + Vite    │ ────────────────────────▶│   Express 5 REST API     │
-│  (client/)            │◀──────────────────────── │   /api/v1/*              │
-└─────────────────────┘        Axios instance      └───────────┬──────────────┘
-                                                                 │
-                                                     Repository → Service → Controller
-                                                                 │
-                                                        ┌────────▼─────────┐
-                                                        │   MongoDB Atlas    │
-                                                        │  (Mongoose ODM,    │
-                                                        │  multi-doc ACID    │
-                                                        │  sessions)          │
-                                                        └────────────────────┘
+┌───────────────────────┐        HTTPS / JSON        ┌───────────────────────────┐
+│    React 19 + Vite     │ ──────────────────────────▶│     Express 5 REST API    │
+│      (client/)          │◀────────────────────────── │        /api/v1/*          │
+└───────────────────────┘        Axios instance        └─────────────┬─────────────┘
+                                                                       │
+                                                     Routes → Controllers → Services
+                                                                       │
+                                                              → Repositories
+                                                                       │
+                                                          ┌────────────▼─────────────┐
+                                                          │       MongoDB Atlas        │
+                                                          │  (Mongoose ODM, multi-doc  │
+                                                          │   ACID-safe sessions)      │
+                                                          └────────────────────────────┘
 ```
 
 The backend strictly separates concerns:
@@ -151,59 +133,50 @@ The backend strictly separates concerns:
 | **Repositories** | Only layer that talks to Mongoose models |
 | **Validators** | Joi schemas — reject bad input before it reaches a controller |
 
+This separation means every money-moving operation (deposit, withdraw, transfer) is testable and auditable in isolation — the controller never touches the database directly, and the service layer never touches `req`/`res`.
+
 ---
 
-## 🧰 Tech Stack
+## 🧰 Tech Stack — What Each Technology Actually Does
 
-<details>
+<details open>
 <summary><strong>Frontend</strong></summary>
+<br/>
 
-| Technology | Purpose |
+| Technology | What it does here |
 |---|---|
-| React 19 | UI library |
-| Vite 8 | Dev server & build tool |
-| React Router 7 | Client-side routing |
-| Axios | HTTP client |
-| Tailwind CSS 4 | Utility-first styling |
-| Framer Motion | Animations & transitions |
-| Lucide React | Icon set |
-| Recharts | Analytics charts |
-| React Markdown + Remark GFM | Rendering AI assistant responses |
+| **React 19** | Powers the entire UI as reusable, stateful components — every screen (dashboard, wallet, transfers, analytics) is built as a composition of these. |
+| **Vite 8** | Dev server and build tool — gives near-instant hot reload during development and bundles the production build. |
+| **React Router 7** | Handles all client-side navigation and enforces public vs. protected route access (e.g., you can't reach `/dashboard` without a valid session). |
+| **Axios** | The single HTTP client used across the app — attaches the JWT to every request automatically and handles token/session cleanup on 401 errors. |
+| **Tailwind CSS 4** | Utility-first styling engine — drives every visual detail (colors, spacing, layout) without writing custom CSS files. |
+| **Framer Motion** | Adds real motion to the interface — the transfer "sending money" animation, modal transitions, and micro-interactions all run through this. |
+| **Lucide React** | Supplies the entire icon set used across the dashboard, forms, and navigation. |
+| **Recharts** | Renders the analytics charts — income vs. expense, category-wise spending, and balance trend — using live transaction data. |
+| **React Markdown + Remark GFM** | Formats and safely renders the AI Assistant's chat responses (bold text, lists, tables) inside the chat UI. |
 
 </details>
 
 <details>
 <summary><strong>Backend</strong></summary>
+<br/>
 
-| Technology | Purpose |
+| Technology | What it does here |
 |---|---|
-| Node.js + Express 5 | HTTP server & routing |
-| MongoDB + Mongoose 9 | Database & ODM |
-| JWT (jsonwebtoken) | Access & refresh token auth |
-| bcrypt | Password hashing |
-| Joi | Request validation |
-| Helmet | Secure HTTP headers |
-| express-rate-limit | Brute-force / abuse protection |
-| Nodemailer | OTP & verification emails |
-| Morgan | Dev request logging |
-| cookie-parser | Cookie handling |
-| Groq API (`openai/gpt-oss-120b`) | AI Banking Assistant |
+| **Node.js + Express 5** | Runs the HTTP server and routes every API request through middleware, controllers, and services. |
+| **MongoDB + Mongoose 9** | Stores every user, account, wallet, and transaction as a schema-validated document; Mongoose defines and enforces those schemas. |
+| **MongoDB Multi-Document Transactions** | Guarantees that a transfer's debit and credit happen together, atomically — either both succeed or neither does. |
+| **JWT (jsonwebtoken)** | Issues and verifies the access and refresh tokens that authenticate every request after login. |
+| **bcrypt** | Hashes every password before it's stored — plaintext passwords never touch the database. |
+| **Joi** | Validates every incoming request body against a strict schema before it reaches business logic, rejecting malformed or malicious input early. |
+| **Helmet** | Sets secure HTTP response headers to reduce common web vulnerabilities. |
+| **express-rate-limit** | Throttles login, OTP, and resend requests to block brute-force and abuse attempts. |
+| **Nodemailer** | Sends every OTP code, email-verification link, and password-reset email. |
+| **cookie-parser** | Reads and manages the HttpOnly refresh-token cookie used for silent session renewal. |
+| **Morgan** | Logs every incoming request during development for quick debugging. |
+| **Groq API (`openai/gpt-oss-120b`)** | Powers the AI Banking Assistant — answers natural-language questions using only the logged-in user's own financial data. |
 
 </details>
-
----
-
-## 📂 Folder Structure
-
-```
-AtlasBank/
-├── client/                 # React frontend  → see client/README.md
-├── server/                 # Express backend → see server/README.md
-├── .gitignore
-└── README.md               # you are here
-```
-
-For the detailed internal structure of each side, see their dedicated READMEs.
 
 ---
 
@@ -213,7 +186,7 @@ For the detailed internal structure of each side, see their dedicated READMEs.
 
 - Node.js **18+**
 - npm **9+**
-- A MongoDB instance (local, replica set, or MongoDB Atlas)
+- A MongoDB instance (local replica set, or MongoDB Atlas)
 - A Groq API key (for the AI Assistant) — free tier available
 - An SMTP-capable email account (for OTP/verification emails)
 
@@ -238,7 +211,7 @@ npm start           # production
 ### Database Setup
 
 > [!TIP]
-> MongoDB **transactions require a replica set** (or MongoDB Atlas, which is a replica set by default). A single standalone `mongod` instance will throw on multi-document transactions used by deposit/withdraw/transfer.
+> MongoDB **transactions require a replica set** (or MongoDB Atlas, which is a replica set by default). A single standalone `mongod` instance will throw on the multi-document transactions used by deposit/withdraw/transfer — Atlas Bank automatically falls back to non-transactional writes in that case, but a replica set is strongly recommended for production.
 
 1. Create a free cluster on [MongoDB Atlas](https://www.mongodb.com/atlas), **or**
 2. Run a local single-node replica set:
@@ -267,6 +240,9 @@ JWT_ACCESS_SECRET=your_access_token_secret
 JWT_REFRESH_SECRET=your_refresh_token_secret
 JWT_ACCESS_EXPIRY=15m
 JWT_REFRESH_EXPIRY=7d
+
+# Client (for CORS + email links)
+CLIENT_URL=http://localhost:5173
 
 # Email (Nodemailer)
 SMTP_HOST=smtp.gmail.com
@@ -331,7 +307,8 @@ Every protected route re-hydrates the user from MongoDB on each request (not jus
 | Brute-force protection | Tiered `express-rate-limit` on login/OTP/resend |
 | Secure headers | `helmet` |
 | Input validation | `Joi` schemas on every mutating route |
-| CORS | Locked to the configured frontend origin, credentials enabled |
+| CORS | Locked to the configured frontend origin(s), credentials enabled |
+| Cross-site cookies | `SameSite=None` + `Secure` in production so refresh tokens survive a Netlify ↔ Render split |
 | Data-scoped AI context | The AI assistant only ever sees the authenticated user's own wallet/account/transaction data — never account numbers, IFSC, or PII |
 
 ---
@@ -356,7 +333,7 @@ Before every request, the backend builds a fresh, minimal financial snapshot for
 
 | Piece | Suggested target |
 |---|---|
-| Frontend (`client/`) | Vercel / Netlify (static Vite build) |
+| Frontend (`client/`) | Netlify / Vercel (static Vite build) |
 | Backend (`server/`) | Render / Railway / a VPS behind Nginx |
 | Database | MongoDB Atlas |
 
@@ -367,6 +344,9 @@ cd client && npm run build      # outputs to client/dist
 # Backend production start
 cd server && npm start
 ```
+
+> [!IMPORTANT]
+> When the frontend and backend live on different domains, set `CLIENT_URL` on the backend to the **exact** deployed frontend origin, and set `NODE_ENV=production` so refresh-token cookies are issued with `SameSite=None; Secure` — otherwise the browser will silently drop them.
 
 ---
 

@@ -1,4 +1,4 @@
-import ApiError from "../utils/ApiError.js";
+import ApiError from "../utils/apiError.js";
 
 /**
  * Central error handler — every controller in this app forwards errors

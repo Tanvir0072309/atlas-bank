@@ -54,7 +54,7 @@ import {
 } from "./email.service.js";
 import { MAX_LOGIN_ATTEMPTS, ACCOUNT_LOCK_TIME } from "../constants/auth.constants.js";
 import { JWT_CONFIG } from "../config/jwt.config.js";
-import ApiError from "../utils/ApiError.js";
+import ApiError from "../utils/apiError.js";
 
 const EMAIL_VERIFICATION_EXPIRES_MS = 24 * 60 * 60 * 1000; // 24h
 const LOGIN_OTP_EXPIRES_MS = 5 * 60 * 1000; // 5 min, matches the email copy

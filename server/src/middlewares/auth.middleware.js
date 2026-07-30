@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import { JWT_CONFIG } from "../config/jwt.config.js";
 import * as authRepository from "../repositories/auth.repository.js";
-import ApiError from "../utils/ApiError.js";
+import ApiError from "../utils/apiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
 /**

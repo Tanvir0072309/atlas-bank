@@ -304,7 +304,7 @@ server/
 PORT=5000
 NODE_ENV=development
 
-MONGO_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/atlasbank
+MONGODB_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/atlasbank
 
 # Frontend URL — used for CORS (so the browser lets the client talk to
 # this API) and for links inside verification/reset emails.
@@ -343,7 +343,7 @@ npm start         # start in production mode (plain node)
 ## ☁️ Production Deployment
 
 1. Set `NODE_ENV=production` and all required env vars on your host
-2. Point `MONGO_URI` at a production MongoDB Atlas cluster (replica set — required for transactions)
+2. Point `MONGODB_URI` at a production MongoDB Atlas cluster (replica set — required for transactions)
 3. Run behind a process manager (PM2) or your platform's own process supervisor:
    ```bash
    npm start

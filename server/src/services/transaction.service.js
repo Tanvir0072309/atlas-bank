@@ -28,7 +28,14 @@ class TransactionService {
                 session
             );
             if (!account) throw new Error("Bank account not found.");
-            if (account.status !== "active") throw new Error("Bank account is not active.");
+            // Accounts created before the auto-activate fix can be stuck at
+            // "pending" forever since there's no verification workflow that
+            // ever flips them to "active" — self-heal here instead of
+            // hard-blocking every transaction for that account.
+            if (account.status === "pending") account.status = "active";
+            if (["blocked", "closed"].includes(account.status)) {
+                throw new Error("Bank account is not active.");
+            }
             if (account.availableBalance < amount) {
                 throw new Error("Insufficient balance in the selected bank account.");
             }
@@ -83,7 +90,10 @@ class TransactionService {
                 session
             );
             if (!account) throw new Error("Bank account not found.");
-            if (account.status !== "active") throw new Error("Bank account is not active.");
+            if (account.status === "pending") account.status = "active";
+            if (["blocked", "closed"].includes(account.status)) {
+                throw new Error("Bank account is not active.");
+            }
 
             const transactionNumber = await generateTransactionNumber();
 
